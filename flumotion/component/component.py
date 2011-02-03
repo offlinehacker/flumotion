@@ -293,6 +293,7 @@ class BaseComponentMedium(medium.PingingMedium):
         @since: 0.6.0
         """
         self.debug('Setting Flumotion debug level to %s' % debug)
+        self.comp.uiState.set('flu-debug', debug)
         log.setDebug(debug)
 
 
@@ -370,6 +371,7 @@ class BaseComponent(common.InitMixin, log.Loggable):
         self.uiState.addKey('virtual-size')
         self.uiState.addKey('total-memory')
         self.uiState.addKey('num-cpus')
+        self.uiState.addKey('flu-debug')
 
         self.uiState.addHook(self)
 
@@ -592,6 +594,8 @@ class BaseComponent(common.InitMixin, log.Loggable):
 
         self.uiState.set('total-memory', self._getTotalMemory())
         self.uiState.set('num-cpus', self._getNumberOfCPUs())
+        self.uiState.set('flu-debug', log.getDebug())
+
         d = run_setups()
         d.addCallbacks(setup_complete, got_error)
         # all status info via messages and the mood
