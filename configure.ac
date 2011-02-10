@@ -4,8 +4,8 @@ dnl releases only do Wall, cvs and prerelease does Werror too
 
 AC_INIT(flumotion, m4_esyscmd([ test -z "$VERSION" && VERSION=0.8.0.1;
                    common/version-gen $VERSION .tarball-version]),
-   http://https://code.fluendo.com/flumotion/trac/newticket?component=flumotion,
-   flumotion)
+        [flumotion-devel@lists.fluendo.com],
+        [flumotion], [http://www.flumotion.net/])
 
 dnl initialize automake
 AM_INIT_AUTOMAKE([-Wno-portability])
