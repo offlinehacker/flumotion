@@ -342,6 +342,7 @@ differences that were added after 0.6.1.
 
   </Version>
  </release>
+
  <release>
   <Version>
    <revision>0.8.0</revision>
@@ -352,4 +353,13 @@ differences that were added after 0.6.1.
   </Version>
  </release>
 
+ <release>
+  <Version>
+   <revision>0.8.1</revision>
+   <branch>0.8</branch>
+   <name>Fo Bar</name>
+   <created>2011-02-18</created>
+   <file-release rdf:resource="http://www.flumotion.net/src/flumotion/flumotion-0.8.1.tar.bz2" />
+  </Version>
+ </release>
 </Project>

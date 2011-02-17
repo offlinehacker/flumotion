@@ -1,4 +1,34 @@
-This is Flumotion 0.8.0 "7 Portes"
+This is Flumotion 0.8.1 "Fo Bar"
+
+Features since 0.8.0:
+
+  * Added Python 2.7 compatibility.
+
+  * The wizard allows serving an HTML page with the video tag (for Ogg
+    and WebM streams). Thanks Zaheer!
+
+  * The wizard and admin now remember the last directory used when
+    exporting/importing a flow file to/from the filesystem.
+
+
+Bugs fixed since 0.8.0:
+
+  * 732  : manager and worker's ideas of registry may become out of sync
+  * 1365 : flumotion-admin doesn't remember the last directory of the flow file
+  * 1379 : flumotion + firewire in Ubuntu 9.10 - strange defaults
+  * 1424 : CPU bar is empty when >100%
+  * 1427 : status icon does not update if component is deleted
+  * 1429 : Shouldn't allow 0h for disker rotation
+  * 1465 : The disker doesn't name properly the first file using an Ical
+  * 1469 : Import Error with python 2.7
+  * 1489 : [effects][audiorate] The audiorate effect is not passthrough and forces a samplerate of 44100Hz
+  * 1491 : ivtv producer crashes when no width, height or deinterlacer are set
+  * 1492 : [flumotion-admin] Improve the way debug levels are set in the admin
+  * 1493 : [config] Check for invalid feederport ranges
+  * 1495 : We should offer an HTML5 page like we do with cortado
+  * 1497 : Consider the fact that a file could have been deleted when creating a bundle
+  * 1498 : wizard_gtk.py:542 AttributeError: "WebcamProducer" object has no attribute "size"
+  * 1499 : The python traceback is not decoded properly in the bug reporter.
 
 Features since 0.6.2:
 
