@@ -35,18 +35,18 @@ class Webcam(feedcomponent.ParseLaunchComponent):
     def get_pipeline_string(self, properties):
         device = properties['device']
 
-        # v4l was removed from the kernel, so v4l2 is default one
-        factory_name = properties.get('element-factory', 'v4l2src')
+        # v4l or v4l2?
+        factory_name = properties.get('element-factory', 'v4lsrc')
 
         # Filtered caps
         mime = properties.get('mime', 'video/x-raw-yuv')
-        colorspace = properties.get('format', 'I420')
+        format = properties.get('format', 'I420')
         width = properties.get('width', None)
         height = properties.get('height', None)
 
         string = mime
         if mime == 'video/x-raw-yuv':
-            string += ",format=(fourcc)%s" % colorspace
+            string += ",format=(fourcc)%s" % format
         if width:
             string += ",width=%d" % width
         if height:

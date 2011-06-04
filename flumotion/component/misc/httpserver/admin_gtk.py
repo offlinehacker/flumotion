@@ -26,7 +26,7 @@ import webbrowser
 import gtk
 
 from flumotion.common.i18n import N_
-from flumotion.common import format as formatting
+from flumotion.common.format import formatTime, formatStorage, formatTimeStamp
 from flumotion.component.base.admin_gtk import BaseAdminGtk
 from flumotion.component.base.baseadminnode import BaseAdminGtkNode
 from flumotion.ui.linkwidget import LinkWidget
@@ -101,30 +101,30 @@ class StatisticsAdminGtkNode(BaseAdminGtkNode):
 
     # Private
 
-    def _regReqStat(self, name, converter=str, formatString="%s", default=0):
+    def _regReqStat(self, name, converter=str, format="%s", default=0):
         widget = self.wtree.get_widget('label-' + name)
         if not widget:
             self.warning("FIXME: no widget %s" % name)
             return
-        self._reqStats[name] = (widget, converter, formatString, default)
+        self._reqStats[name] = (widget, converter, format, default)
 
     def _refreshStatistics(self, state):
         for name in self._reqStats:
-            widget, converter, formatString, default = self._reqStats[name]
+            widget, converter, format, default = self._reqStats[name]
             value = state.get(name)
             if value is not None:
-                widget.set_text(formatString % converter(value))
+                widget.set_text(format % converter(value))
             else:
-                widget.set_text(formatString % converter(default))
+                widget.set_text(format % converter(default))
 
     def _updateStatistic(self, name, value):
         if name not in self._reqStats:
             return
-        widget, converter, formatString, default = self._reqStats[name]
+        widget, converter, format, default = self._reqStats[name]
         if value is not None:
-            widget.set_text(formatString % converter(value))
+            widget.set_text(format % converter(value))
         else:
-            widget.set_text(formatString % converter(default))
+            widget.set_text(format % converter(default))
 
 
 class ServerStatsAdminGtkNode(StatisticsAdminGtkNode):
@@ -184,7 +184,7 @@ class ServerStatsAdminGtkNode(StatisticsAdminGtkNode):
 
         # Update Server Uptime
         uptime = state.get('server-uptime')
-        self._uptime.set_text(formatting.formatTime(uptime))
+        self._uptime.set_text(formatTime(uptime))
 
     # Private
 
@@ -250,12 +250,10 @@ class CacheStatsAdminGtkNode(StatisticsAdminGtkNode):
 
 def _formatClientCount(value):
     if isinstance(value, (int, long)):
-        template = gettext.ngettext(
-            N_("%d client"), N_("%d clients"), value)
+        format = gettext.ngettext(N_("%d client"), N_("%d clients"), value)
     else:
-        template = gettext.ngettext(
-            N_("%.2f client"), N_("%.2f clients"), value)
-    return template % value
+        format = gettext.ngettext(N_("%.2f client"), N_("%.2f clients"), value)
+    return format % value
 
 
 def _formatTimeStamp(value):
@@ -267,11 +265,11 @@ def _formatReqRate(value):
 
 
 def _formatBytes(value):
-    return formatting.formatStorage(value) + _('Byte')
+    return formatStorage(value) + _('Byte')
 
 
 def _formatBitrate(value):
-    return formatting.formatStorage(value) + _('bit/s')
+    return formatStorage(value) + _('bit/s')
 
 
 def _formatPercent(value):

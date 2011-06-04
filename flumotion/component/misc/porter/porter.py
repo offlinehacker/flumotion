@@ -27,7 +27,7 @@ import time
 from urllib2 import urlparse
 
 from twisted.cred import portal
-from twisted.internet import protocol, reactor, error, defer
+from twisted.internet import protocol, reactor, address, error, defer
 from twisted.spread import pb
 from zope.interface import implements
 
@@ -35,7 +35,7 @@ from flumotion.common import medium, log, messages, errors
 from flumotion.common.i18n import N_, gettexter
 from flumotion.component import component
 from flumotion.component.component import moods
-from flumotion.twisted import fdserver, checkers
+from flumotion.twisted import credentials, fdserver, checkers
 from flumotion.twisted import reflect
 
 __version__ = "$Rev$"
@@ -77,9 +77,6 @@ class PorterAvatar(pb.Avatar, log.Loggable):
     def perspective_deregisterPrefix(self, prefix):
         self.log("Perspective called: deregistering default")
         self.porter.deregisterPrefix(prefix, self)
-
-    def perspective_getPort(self):
-        return self.porter._iptablesPort
 
 
 class PorterRealm(log.Loggable):
@@ -335,7 +332,7 @@ class Porter(component.BaseComponent, log.Loggable):
                 fdserver.FDPort, self._socketPath,
                 serverfactory, mode=self._socketMode)
             self.info("Now listening on socketPath %s", self._socketPath)
-        except error.CannotListenError:
+        except error.CannotListenError, e:
             self.warning("Failed to create socket %s" % self._socketPath)
             m = messages.Error(T_(N_(
                 "Network error: socket path %s is not available."),
@@ -363,7 +360,7 @@ class Porter(component.BaseComponent, log.Loggable):
                     interface=self._interface)
             self.info("Now listening on interface %r on port %d",
                       self._interface, self._port)
-        except error.CannotListenError:
+        except error.CannotListenError, e:
             self.warning("Failed to listen on interface %r on port %d",
                          self._interface, self._port)
             m = messages.Error(T_(N_(

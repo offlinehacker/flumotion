@@ -56,7 +56,7 @@ class OverlayImageSource(gst.BaseSrc):
         padcaps = gst.caps_from_string(self.capsStr)
         gstBuf.set_caps(padcaps)
         gstBuf.timestamp = 0
-        gstBuf.duration = self.duration * gst.SECOND
+        gstBuf.duration = duration * gst.SECOND
         return gst.FLOW_OK, gstBuf
 
 
@@ -87,7 +87,7 @@ class Overlay(feedcomponent.ParseLaunchComponent):
         if textOverflowed:
             m = messages.Warning(
                 T_(N_("Overlayed text '%s' too wide for the video image."),
-                   self.text), mid="text-too-wide")
+                   text), mid="text-too-wide")
             self.addMessage(m)
 
         if imagesOverflowed:
@@ -141,7 +141,7 @@ class Overlay(feedcomponent.ParseLaunchComponent):
         else:
             #FIXME: fluoverlaysrc only needed on gst-plugins-base < 0.10.22
             gobject.type_register(OverlayImageSource)
-            gst.element_register(OverlayImageSource, "fluoverlaysrc",
+            ret = gst.element_register(OverlayImageSource, "fluoverlaysrc",
                 gst.RANK_MARGINAL)
             self.source = gst.element_factory_make('fluoverlaysrc', 'source')
         # create the source bin
@@ -206,7 +206,7 @@ class Overlay(feedcomponent.ParseLaunchComponent):
         @param source: the appsrc element to push to
         @type source: GstElement
         """
-        self.log("Pushing buffer")
+        self.debug("Pushing buffer")
         gstBuf = gst.Buffer(self.imgBuf)
         padcaps = gst.caps_from_string(self.capsStr)
         gstBuf.set_caps(padcaps)

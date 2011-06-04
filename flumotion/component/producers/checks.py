@@ -21,8 +21,9 @@
 
 from twisted.internet import defer
 
-from flumotion.common import messages
+from flumotion.common import gstreamer, messages
 from flumotion.common.i18n import N_, gettexter
+from flumotion.worker.checks import check
 
 __version__ = "$Rev$"
 T_ = gettexter()

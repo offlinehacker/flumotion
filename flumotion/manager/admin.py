@@ -30,6 +30,7 @@ from StringIO import StringIO
 
 from twisted.internet import reactor
 from twisted.python import failure
+from twisted.spread import pb
 from zope.interface import implements
 
 from flumotion.manager import base
@@ -42,6 +43,7 @@ from flumotion.monitor.nagios import util
 from flumotion.common import messages
 
 # make ComponentState proxyable
+from flumotion.twisted import flavors
 from flumotion.common import componentui
 
 __version__ = "$Rev$"
@@ -548,14 +550,14 @@ class AdminAvatar(base.ManagerAvatar):
                     if wizard.type not in types:
                         continue
                 if provides is not None:
-                    for formatProvided in wizard.provides:
-                        if formatProvided.media_type in provides:
+                    for format in wizard.provides:
+                        if format.media_type in provides:
                             break
                     else:
                         continue
                 if accepts is not None:
-                    for formatAccepted in wizard.accepts:
-                        if formatAccepted.media_type in accepts:
+                    for format in wizard.accepts:
+                        if format.media_type in accepts:
                             break
                     else:
                         continue

@@ -24,7 +24,7 @@ import gobject
 import threading
 
 from flumotion.component import decodercomponent as dc
-from flumotion.common import messages, gstreamer
+from flumotion.common import messages
 from flumotion.common.i18n import N_, gettexter
 
 T_ = gettexter()
@@ -113,10 +113,7 @@ class SyncKeeper(gst.Element):
         if not self._totalTime and not self._resetReceived:
             return
         self._syncTimestamp = self._totalTime
-        if position >= start:
-            self._syncOffset = start + (position - start)
-        else:
-            self._syncOffset = start
+        self._syncOffset = start + (start - position)
         self._resetReceived = False
         self.info("Update sync point to % r, offset to %r" %
             (gst.TIME_ARGS(self._syncTimestamp),
@@ -133,18 +130,12 @@ class SyncKeeper(gst.Element):
 
         try:
             self._lock.acquire()
-            # Discard buffers outside the configured segment
-            if buf.timestamp < self._syncOffset:
-                self.warning("Could not clip buffer to segment")
-                return gst.FLOW_OK
-            # Get the input stream time of the buffer
-            buf.timestamp -= self._syncOffset
-            # Set the accumulated stream time
-            buf.timestamp += self._syncTimestamp
-            duration = 0
-            if buf.duration != gst.CLOCK_TIME_NONE:
-                duration = buf.duration
-            self._totalTime = max(buf.timestamp + duration, self._totalTime)
+            try:
+                buf.timestamp += self._syncTimestamp - self._syncOffset
+            except TypeError:
+                buf.timestamp = 0
+            dur = buf.duration != gst.CLOCK_TIME_NONE and buf.duration or 0
+            self._totalTime = max(buf.timestamp + dur, self._totalTime)
 
             self.log("Output %s timestamp: %s, %s" %
                 (srcpad is self.audiosrc and 'audio' or 'video',
@@ -163,7 +154,7 @@ class SyncKeeper(gst.Element):
             if event.type == gst.EVENT_NEWSEGMENT:
                 u, r, f, start, s, position = event.parse_new_segment()
                 self._update_sync_point(start, position)
-            if gstreamer.event_is_flumotion_reset(event):
+            if event.get_structure().get_name() == 'flumotion-reset':
                 self._resetReceived = True
                 self._send_new_segment = True
         finally:

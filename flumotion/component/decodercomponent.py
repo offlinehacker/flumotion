@@ -27,8 +27,8 @@ import gst
 import gst.interfaces
 
 from flumotion.common.i18n import N_, gettexter
-from flumotion.common import errors, messages, gstreamer
-from flumotion.component.effects.audioconvert import audioconvert
+from flumotion.common import errors, messages
+from flumotion.component.effects.audiorate import audiorate
 from flumotion.component.effects.videorate import videorate
 from flumotion.component.effects.videoscale import videoscale
 from flumotion.component import feedcomponent as fc
@@ -64,7 +64,7 @@ class DecoderComponent(fc.ReconfigurableComponent):
     def _depay_reset_event(self, pad, event, eater):
         if event.type != gst.EVENT_CUSTOM_DOWNSTREAM:
             return True
-        if not gstreamer.event_is_flumotion_reset(event):
+        if event.get_structure().get_name() != 'flumotion-reset':
             return True
         self.info("Received flumotion-reset, not droping buffers anymore")
 
@@ -102,11 +102,9 @@ class DecoderComponent(fc.ReconfigurableComponent):
         # valid video pad
         props = self.config['properties']
         samplerate = props.get('samplerate', 44100)
-        channels = props.get('channels', 2)
 
-        self.ar = audioconvert.Audioconvert('audioconvert', None,
-                                            self.pipeline, channels=channels,
-                                            samplerate=samplerate)
+        self.ar = audiorate.Audiorate('audiorate', None,
+                                      self.pipeline, samplerate)
         self.addEffect(self.ar)
 
     def _new_decoded_pad_cb(self, decoder, pad, last):

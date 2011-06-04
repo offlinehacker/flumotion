@@ -25,10 +25,11 @@ import tempfile
 import time
 import stat
 
-from twisted.internet import defer, threads, reactor, utils
+from twisted.internet import defer, threads, protocol, reactor, utils
 
-from flumotion.common import log, common, python, errors
-from flumotion.common import format as formatting
+from flumotion.common import log, common, python, format, errors
+
+from flumotion.component.misc.httpserver import fileprovider
 
 LOG_CATEGORY = "cache-manager"
 
@@ -110,9 +111,9 @@ class CacheManager(object, log.Loggable):
         """
         ident = self._identifiers.get(path, None)
         if ident is None:
-            sha1Hash = python.sha1()
-            sha1Hash.update(self._cachePrefix + path)
-            ident = sha1Hash.digest().encode("hex").strip('\n')
+            hash = python.sha1()
+            hash.update(self._cachePrefix + path)
+            ident = hash.digest().encode("hex").strip('\n')
             # Prevent the cache from growing endlessly
             if len(self._identifiers) >= ID_CACHE_MAX_SIZE:
                 self._identifiers.clear()
@@ -216,7 +217,7 @@ class CacheManager(object, log.Loggable):
             if usage <= self._cacheMinUsage:
                 # We reach the cleanup limit
                 self.debug('cleaned up, cache use is now %sbytes',
-                    formatting.formatStorage(usage))
+                    format.formatStorage(usage))
                 break
         d = threads.deferToThread(self._rmfiles, rmlist)
         d.addBoth(self._setCacheUsage, usage)
@@ -243,7 +244,7 @@ class CacheManager(object, log.Loggable):
             return defer.succeed((self._cacheUsageLastUpdate, size))
 
         self.debug('cache usage will be %sbytes, need more cache',
-            formatting.formatStorage(usage + size))
+            format.formatStorage(usage + size))
 
         if not self._cleanupEnabled:
             # No space available and cleanup disabled: allocation failed.
@@ -306,7 +307,7 @@ class CacheManager(object, log.Loggable):
 
         try:
             return TempFile(self, path, tag, size, mtime)
-        except OSError:
+        except OSError, e:
             return None
 
     def newTempFile(self, path, size, mtime=None):
@@ -328,14 +329,14 @@ class CachedFile:
 
     def __init__(self, cachemgr, resPath):
         cachedPath = cachemgr.getCachePath(resPath)
-        handle = open(cachedPath, 'rb')
-        stat = os.fstat(handle.fileno())
+        file = open(cachedPath, 'rb')
+        stat = os.fstat(file.fileno())
 
         cachemgr.log("Opened cached file %s [fd %d]",
-                     cachedPath, handle.fileno())
+                     cachedPath, file.fileno())
 
         self.name = cachedPath
-        self.file = handle
+        self.file = file
         self.stat = stat
 
     def unlink(self):
@@ -348,11 +349,12 @@ class CachedFile:
             if (s[stat.ST_MTIME] > self.stat[stat.ST_MTIME]):
                 return
             os.unlink(self.name)
-        except OSError:
+        except OSError, e:
             pass
 
     def __getattr__(self, name):
-        a = getattr(self.__dict__['file'], name)
+        file = self.__dict__['file']
+        a = getattr(file, name)
         if type(a) != type(0):
             setattr(self, name, a)
         return a
@@ -386,7 +388,8 @@ class TempFile:
         self.name = tempPath
 
     def __getattr__(self, name):
-        a = getattr(self.__dict__['file'], name)
+        file = self.__dict__['file']
+        a = getattr(file, name)
         if type(a) != type(0):
             setattr(self, name, a)
         return a
@@ -426,7 +429,7 @@ class TempFile:
                                   self.name, self.fileno())
                 self.cachemgr.releaseCacheSpace(self.tag)
                 os.unlink(self.name)
-        except OSError:
+        except OSError, e:
             pass
 
         self.file.close()

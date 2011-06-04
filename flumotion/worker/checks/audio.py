@@ -83,7 +83,7 @@ def getAudioDevices(source_factory, mid=None):
         {'alsasrc': getAlsaDevices,
          'osssrc': getOssDevices}[source_factory]()
 
-    except dbus.DBusException:
+    except dbus.DBusException, e:
         devices = [("/dev/dsp", "/dev/dsp"),
                    ("/dev/dsp1", "/dev/dsp1"),
                    ("/dev/dsp2", "/dev/dsp2")]

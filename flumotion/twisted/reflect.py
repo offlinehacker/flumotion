@@ -23,8 +23,12 @@
 functions based on twisted.python.reflect
 """
 
-# FIXME: pychecker: clean up unused imports
+# FIXME: clean up unused imports
+from twisted.cred import checkers, credentials
 from twisted.cred.portal import IRealm, Portal
+from twisted.internet import protocol
+from twisted.python import log, reflect
+from twisted.spread import pb, flavors
 from twisted.spread.pb import PBClientFactory
 
 __version__ = "$Rev$"

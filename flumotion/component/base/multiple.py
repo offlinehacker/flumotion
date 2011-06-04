@@ -24,12 +24,14 @@ import gtk
 import locale
 import os
 
-from flumotion.common import log
-from flumotion.common import format as formatting
+from twisted.python import util
+from twisted.internet import defer
 
+from flumotion.common import log
 from flumotion.common.errors import SleepingComponentError
 from flumotion.common.i18n import getLL, gettexter
 from flumotion.common.planet import moods
+from flumotion.common.format import formatStorage
 
 _ = gettext.gettext
 __version__ = "$Rev$"
@@ -76,7 +78,7 @@ class ComponentOverview(gtk.Expander, log.Loggable):
             fraction = 0
         else:
             fraction = size / self.total_mem
-            size = '%sB' % formatting.formatStorage(size)
+            size = '%sB' % formatStorage(size)
 
         self.mem.set_text(size)
         self.mem.set_fraction(fraction)
@@ -121,6 +123,7 @@ class MultipleComponentsAdminGtk(log.Loggable):
             co = ComponentOverview(state.get('name'))
             vbox.pack_start(co, False, True)
             vbox.pack_start(gtk.HSeparator(), False, True)
+            mood = state.get('mood')
             if state.get('mood') in [moods.lost.value,
                                      moods.sleeping.value,
                                      moods.sad.value]:

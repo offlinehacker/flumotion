@@ -32,12 +32,14 @@ from twisted.spread import pb
 from twisted.python import reflect
 from zope.interface import implements
 
+from flumotion.configure import configure
 from flumotion.common import interfaces, errors, log, planet, medium
 from flumotion.common import componentui, common, messages
 from flumotion.common import interfaces, reflectcall, debug
 from flumotion.common.i18n import N_, gettexter
 from flumotion.common.planet import moods
 from flumotion.common.poller import Poller
+from flumotion.twisted import credentials
 from flumotion.twisted import pb as fpb
 from flumotion.twisted.flavors import IStateCacheableListener
 
@@ -213,7 +215,7 @@ class BaseComponentMedium(medium.PingingMedium):
         Note: this is insufficient in general, and should be replaced by
         network mapping stuff later.
         """
-        assert self.remote, "%r does not have a remote connection" % self
+        assert self.remote
         host = self.remote.broker.transport.getHost()
         self.debug("getIP(): using %r as our IP", host.host)
         return host.host
@@ -294,15 +296,6 @@ class BaseComponentMedium(medium.PingingMedium):
         self.comp.uiState.set('flu-debug', debug)
         log.setDebug(debug)
 
-    def remote_modifyProperty(self, property, value):
-        """
-        Modifies a component property on the fly
-
-        @since: 0.9.0
-        """
-        self.info('Modifying property %s to %s', property, value)
-        return self.comp.modifyProperty(property, value)
-
 
 class BaseComponent(common.InitMixin, log.Loggable):
     """
@@ -379,7 +372,6 @@ class BaseComponent(common.InitMixin, log.Loggable):
         self.uiState.addKey('total-memory')
         self.uiState.addKey('num-cpus')
         self.uiState.addKey('flu-debug')
-        self.uiState.addKey('properties')
 
         self.uiState.addHook(self)
 
@@ -775,44 +767,6 @@ class BaseComponent(common.InitMixin, log.Loggable):
             self.debug('asked to adminCallRemote(%s, *%r, **%r), but '
                        'no manager.'
                        % (methodName, args, kwargs))
-
-    def modifyProperty(self, property_name, value):
-        """
-        Modifies a property of the compoment.
-
-        Components with modifiable properties (properties that can be changed
-        on the fly) should implement modify_property_(propertyName) to receive
-        the call
-
-        @param property_name: Name of the property to change
-        @type  property_name: str
-        @param value: Value to set
-        """
-        # Transform property name to camel case:
-        # max-reconnections-delay -> MaxReconnectionsDelay
-        p = ''.join([t.title() for t in property_name.split('-')])
-        method_name = "modify_property_%s" % p
-        if not hasattr(self, method_name):
-            raise errors.PropertyNotModifiableError("%s" % (property_name))
-        method = getattr(self, method_name)
-        if not method(value):
-            return False
-        self.config['properties'][property_name] = value
-        self.uiState.set('properties', self.config['properties'])
-        return True
-
-    def checkPropertyType(self, property_name, value, allowed_type):
-        """
-        Check that the value to be set in a property is of the correct type
-
-        @returns: True if the value is of the correct type
-        """
-        if type(value) != allowed_type:
-            self.warning("Could not set the property %s in %s. "
-                         "'value' must be of %s", property_name, self,
-                         allowed_type)
-            return False
-        return True
 
     def _export_plug_interface(self, plug, medium):
         try:

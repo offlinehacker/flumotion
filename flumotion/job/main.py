@@ -19,23 +19,24 @@
 
 # Headers in this file shall remain intact.
 
+import os
+
 from twisted.internet import reactor
 
-from flumotion.twisted import credentials, fdserver
-from flumotion.common import log, common, options
+from flumotion.configure import configure
+from flumotion.common import log, keycards, common, errors
 from flumotion.job import job
-
-# register serializables
-from flumotion.common import keycards
+from flumotion.twisted import credentials, fdserver
+from flumotion.common.options import OptionParser
 
 __version__ = "$Rev$"
 
 
 def main(args):
-    parser = options.OptionParser(domain="flumotion-job")
+    parser = OptionParser(domain="flumotion-job")
 
     log.debug('job', 'Parsing arguments (%r)' % ', '.join(args))
-    opts, args = parser.parse_args(args)
+    options, args = parser.parse_args(args)
 
     # check if a config file was specified; if so, parse config and copy over
     if len(args) != 3:

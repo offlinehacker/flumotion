@@ -24,7 +24,7 @@ import datetime
 
 from twisted.internet import reactor
 
-from flumotion.common import log, eventcalendar, tz
+from flumotion.common import log, eventcalendar
 from flumotion.component.base import watcher
 
 __version__ = "$Rev$"
@@ -88,7 +88,7 @@ class Scheduler(log.Loggable):
         # we want to make sure we use the same when for getting old and new
         # instances if it wasn't specified
         if not when:
-            when = datetime.datetime.now(tz.UTC)
+            when = datetime.datetime.now(eventcalendar.UTC)
 
         # FIXME: convert Content lists to dicts to speed things up
         # because they are used as a lookup inside loops
@@ -125,9 +125,10 @@ class Scheduler(log.Loggable):
         Get all points on this scheduler's event horizon.
         """
         if not when:
-            when = datetime.datetime.now(tz.LOCAL)
+            when = datetime.datetime.now(eventcalendar.LOCAL)
 
         self.debug('getPoints at %s', str(when))
+        earliest = when + self.windowSize
 
         points = self._calendar.getPoints(when, self.windowSize)
 
@@ -196,7 +197,7 @@ class Scheduler(log.Loggable):
         self.debug("reschedule events")
         self._cancelScheduledCalls()
 
-        now = datetime.datetime.now(tz.LOCAL)
+        now = datetime.datetime.now(eventcalendar.LOCAL)
 
         def _getNextPoints():
             # get the next list of points in time that all start at the same

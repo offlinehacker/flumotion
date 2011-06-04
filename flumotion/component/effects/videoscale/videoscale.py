@@ -26,7 +26,7 @@ import gst
 from flumotion.common import errors, messages, gstreamer
 from flumotion.common.i18n import N_, gettexter
 from flumotion.component import feedcomponent
-
+from flumotion.component.producers.playlist import smartscale
 
 __version__ = "$Rev$"
 T_ = gettexter()
@@ -102,7 +102,9 @@ class VideoscaleBin(gst.Bin):
             # unlink the sink and source pad of the old deinterlacer
             reactor.callFromThread(blockPad.set_blocked, False)
 
-        self._sinkPad.send_event(gstreamer.flumotion_reset_event())
+        event = gst.event_new_custom(gst.EVENT_CUSTOM_DOWNSTREAM,
+            gst.Structure('flumotion-reset'))
+        self._sinkPad.send_event(event)
 
         # We might be called from the streaming thread
         self.info("Replaced capsfilter")
@@ -204,8 +206,6 @@ class Videoscale(feedcomponent.PostProcEffect):
         vt = gstreamer.get_plugin_version('videoscale')
         if not vt:
             raise errors.MissingElementError('videoscale')
-        # 'add-borders' property was added in gst-plugins-base 0.10.29,
-        # and it's requiered to respect DAR by adding black borders
         if not vt > (0, 10, 29, 0):
             self.component.addMessage(
                 messages.Warning(T_(N_(

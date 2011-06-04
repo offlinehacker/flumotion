@@ -10,8 +10,7 @@ clean-local:
 	rm -rf *.pyc *.pyo
 
 SUBDIRS = \
-	audioconvert \
-	audioresync \
+	audiorate \
 	colorbalance \
 	deinterlace  \
 	videorate \

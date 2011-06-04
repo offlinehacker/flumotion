@@ -66,14 +66,14 @@ class WizardEntryState(pb.RemoteCopy):
         Fetches a list of media types this components accepts.
         @returns: a list of strings
         """
-        return [accepted.media_type for accepted in self.accepts]
+        return [format.media_type for format in self.accepts]
 
     def getProvidedMediaTypes(self):
         """
         Fetches a list of media types this components provides.
         @returns: a list of strings
         """
-        return [provided.media_type for provided in self.provides]
+        return [format.media_type for format in self.provides]
 
     def getRank(self):
         return self.rank

@@ -2,7 +2,7 @@ dnl initialize autoconf
 dnl when going to/from release please remove/add the nano (fourth number)
 dnl releases only do Wall, cvs and prerelease does Werror too
 
-AC_INIT(flumotion, m4_esyscmd([ test -z "$VERSION" && VERSION=0.9.0.1;
+AC_INIT(flumotion, m4_esyscmd([ test -z "$VERSION" && VERSION=0.8.1.1;
                    common/version-gen $VERSION .tarball-version]),
         [flumotion-devel@lists.fluendo.com],
         [flumotion], [http://www.flumotion.net/])
@@ -27,7 +27,7 @@ AC_SUBST(GST_010_REQ, 0.10.11)
 GST_010_SUPPORTED=true
 
 dnl Start date used to autogenrate ChangeLog from 'git log'
-AC_SUBST(GIT_LOG_START_COMMIT, "e504f6baf852066b47c96b74d9f7f1c78313a841")
+AC_SUBST(GIT_LOG_START_COMMIT, "032201b9558011644dee2122e0220469b9fcd13c")
 
 dnl Add parameters for aclocal
 AC_SUBST(ACLOCAL_AMFLAGS, "-I m4 -I common")
@@ -158,11 +158,8 @@ flumotion/component/Makefile
 flumotion/component/base/Makefile
 flumotion/component/bouncers/Makefile
 flumotion/component/bouncers/algorithms/Makefile
-flumotion/component/common/Makefile
-flumotion/component/common/fgdp/Makefile
 flumotion/component/effects/Makefile
-flumotion/component/effects/audioconvert/Makefile
-flumotion/component/effects/audioresync/Makefile
+flumotion/component/effects/audiorate/Makefile
 flumotion/component/effects/colorbalance/Makefile
 flumotion/component/effects/deinterlace/Makefile
 flumotion/component/effects/videorate/Makefile
@@ -174,9 +171,8 @@ flumotion/component/combiners/composite/Makefile
 flumotion/component/combiners/switch/Makefile
 flumotion/component/consumers/Makefile
 flumotion/component/consumers/disker/Makefile
-flumotion/component/consumers/fgdp/Makefile
+flumotion/component/consumers/gdp/Makefile
 flumotion/component/consumers/httpstreamer/Makefile
-flumotion/component/consumers/pipeline/Makefile
 flumotion/component/consumers/preview/Makefile
 flumotion/component/consumers/shout2/Makefile
 flumotion/component/converters/Makefile
@@ -199,7 +195,7 @@ flumotion/component/producers/Makefile
 flumotion/component/producers/audiotest/Makefile
 flumotion/component/producers/bttv/Makefile
 flumotion/component/producers/firewire/Makefile
-flumotion/component/producers/fgdp/Makefile
+flumotion/component/producers/gdp/Makefile
 flumotion/component/producers/icecast/Makefile
 flumotion/component/producers/ivtv/Makefile
 flumotion/component/producers/pipeline/Makefile

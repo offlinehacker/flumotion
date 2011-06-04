@@ -3,7 +3,7 @@
 
 import os
 
-from flumotion.common import format as formatting
+from flumotion.common.format import formatStorage
 from flumotion.monitor.nagios import util
 
 __version__ = "$Rev: 6687 $"
@@ -177,7 +177,7 @@ def parseSize(size):
     """
     Given a size string, convert to an int in base unit.
     suffixes are interpreted in SI, as multiples of 1000, not 1024.
-    Opposite of L{flumotion.common.formatting.formatStorage}
+    Opposite of L{flumotion.common.format.formatStorage}
 
     @rtype: int
     """
@@ -293,20 +293,18 @@ class ProcessVSize(util.LogCommand):
             which = [t for t in l if t[1] >= critical]
             return util.critical(
                 '%d %s(s) above critical level - highest is %d at %s' % (
-                    len(which), self.process_type, pid,
-                    formatting.formatStorage(vsize)))
+                    len(which), self.process_type, pid, formatStorage(vsize)))
 
         if vsize >= warning:
             # count number of warning jobs
             which = [t for t in l if t[1] >= warning]
             return util.warning(
                 '%d %s(s) above warning level - highest is %d at %s' % (
-                    len(which), self.process_type, pid,
-                    formatting.formatStorage(vsize)))
+                    len(which), self.process_type, pid, formatStorage(vsize)))
 
         return util.ok('No %s processes above warning level '
-            '(highest is %d at %s)' % (
-                self.process_type, pid, formatting.formatStorage(vsize)))
+            '(highest is %d at %s)' % (self.process_type, pid,
+                                       formatStorage(vsize)))
 
 
 class JobVSize(ProcessVSize):

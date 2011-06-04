@@ -25,13 +25,12 @@ import time
 
 import gtk
 
-from flumotion.common import errors
-from flumotion.common import format as formatting
+from flumotion.common import errors, format
 
 from flumotion.component.base.admin_gtk import BaseAdminGtk
 from flumotion.component.base.baseadminnode import BaseAdminGtkNode
 
-from flumotion.common.tz import LOCAL, UTC
+from flumotion.common.eventcalendar import LOCAL, UTC
 
 _ = gettext.gettext
 
@@ -61,7 +60,7 @@ class Point:
         # when is in UTC, but show it in local timezone instead
         when = when.replace(tzinfo=UTC).astimezone(LOCAL)
 
-        self.whenLocal = formatting.formatTimeStamp(when.timetuple())
+        self.whenLocal = format.formatTimeStamp(when.timetuple())
         self.which = which
         self.what = what
 
@@ -267,7 +266,7 @@ class StatusNode(BaseAdminGtkNode):
         self.tree.set_model(self.store)
 
     def _append(self, item):
-        created = formatting.formatTimeStamp(time.localtime(item[0]))
+        created = format.formatTimeStamp(time.localtime(item[0]))
         self._iters[item[0]] = self.store.append([str(item[0]),
                                                   os.path.basename(
                                                       str(item[1])),
@@ -299,8 +298,8 @@ class StatusNode(BaseAdminGtkNode):
 
     def stateRemove(self, state, key, value):
         if key == 'filelist':
-            i = self._iters[value[0]]
-            if i:
+            iter = self._iters[value[0]]
+            if iter:
                 self.store.remove(iter)
                 self._iters.pop(value[0])
 

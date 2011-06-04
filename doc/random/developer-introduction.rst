@@ -1,17 +1,17 @@
 
 .. contents:: Table of Contents
 
-.. _Open a new Ticket: https://code.flumotion.com/trac/newticket 
-.. _Wiki: https://code.flumotion.com/trac/wiki
-.. _Code Browser: https://code.flumotion.com/trac/browser 
-.. _Timeline: https://code.flumotion.com/trac/timeline
-.. _Style guide: https://code.flumotion.com/trac/browser/flumotion/doc/random/styleguide
-.. _Existing tickets: https://code.flumotion.com/trac/report 
+.. _Open a new Ticket: https://code.fluendo.com/flumotion/trac/newticket 
+.. _Wiki: https://code.fluendo.com/flumotion/trac/wiki
+.. _Code Browser: https://code.fluendo.com/flumotion/trac/browser 
+.. _Timeline: https://code.fluendo.com/flumotion/trac/timeline
+.. _Style guide: https://code.fluendo.com/flumotion/trac/browser/flumotion/trunk/doc/random/styleguide
+.. _Existing tickets: https://code.fluendo.com/flumotion/trac/report 
 .. _Buildbot: http://build.fluendo.com:8070/
 .. _Trial: http://twistedmatrix.com/trac/wiki/TwistedTrial
 .. _Twisted: http://twistedmatrix.com/
 .. _Gtk: http://www.gtk.org/
-.. _JHBuildWiki: https://code.flumotion.com/trac/wiki/UsingJHBuild
+.. _JHBuildWiki: https://code.fluendo.com/flumotion/trac/wiki/UsingJHBuild
 .. _GLib: http://library.gnome.org/devel/glib/
 .. _GObject: http://library.gnome.org/devel/gobject/
 .. _GStreamer: http://www.gstreamer.net/
@@ -22,7 +22,7 @@
 .. _Glade2Tutorial: http://www.kplug.org/glade_tutorial/glade2_tutorial/glade2_introduction.html
 .. _PyGTKManual: http://www.pygtk.org/docs/pygtk/
 .. _GtkManual: http://library.gnome.org/devel/gtk/stable/
-.. _Moods: https://code.flumotion.com/trac/browser/flumotion/doc/random/moods
+.. _Moods: https://code.fluendo.com/flumotion/trac/browser/flumotion/trunk/doc/random/moods
 
 ============================================
  Developer introduction guide for Flumotion
@@ -38,47 +38,14 @@ Getting started
 This section describes how you'll get started as a developer. It means fetching the sources, 
 building, and running.
 
-Getting your git environment configured
----------------------------------------
-
-Once you have installed git, you need to set your committer's name and email in git's global configuration.
-
-  - Set commiter name and email:::
-
-    $ git config --global user.name "Your Name Comes Here"
-    $ git config --global user.email you@flumotion.com
-
-You should also configure the following options and aliases to help you in the development.
-
-  - Get a colored diff by default, both in the console and the UI::
-
-    $ git config --global color.ui auto
-    $ git config --global color.diff auto
-
-  - Only push the tracking branch: ::
-
-    $ git config --global push.default tracking
-
-  - Always rebase instead of mergins for pulls in branches tracking other branches::
-
-    $ git config --global branch.autosetuprebase always
-
-  - Aliases::
-
-    $ git config --global alias.l "log --oneline --decorate --graph"
-    $ git config --global alias.d "diff --color-words"
-    $ git config --global alias.s "status --short"
-    $ git config --global alias.a "add -u"
-    $ git config --global alias.c "commit"
-
 Getting your development environment installed
 ----------------------------------------------
 
 Once you have gstreamer installed on an uninstalled directory, you need to install flumotion the
-same way. This time though, you get the code from git directly as this is the most 
+same way. This time though, you get the code from subversion directly as this is the most 
 up to date code. So, let's start. create a folder and check it out::
 
-   git clone git@code.flumotion.com:flumotion.git
+  svn checkout https://code.fluendo.com/flumotion/svn/flumotion/trunk/ flumotion
 
 First the build environment needs to be prepared::
 
@@ -163,7 +130,7 @@ Flowtester is a tool to easily test flumotion flows.
 Flows can be handwritten or created by the configuration assistant.
 The code lives in the "flumotion-flowtester" module::
 
-  git clone git@code.flumotion.com:flumotion-flowtester.git
+  svn checkout https://code.fluendo.com/flumotion/svn/flumotion-flowtester/trunk/ flumotion-flowtester
 
 To run flowtester, just type::
 
@@ -331,14 +298,23 @@ FIXME
 Resources and Tools
 ===================
 
-Git
----
-The source code of Flumotion is stored in a Git repository.
-You need to be able to use Git properly.
+Subversion
+----------
+The source code of Flumotion is stored in a Subversion repository.
+You need to be able to use subversion properly.
 
-The Git Community book is a good introduction to Git.
+The SVN book is a good introduction to SVN.
 
 Understand and query information from the web frontend.
+
+Pay special attention to the Basic Work Cycle in the third Chapter:
+
+* checkout: FIXME link
+* status
+* diff
+* revert
+* update
+* commit
 
 
 Trac
@@ -377,7 +353,7 @@ If you use ubuntu or debian it's strongly recommended that you install the packa
 which can accept data from a pipe. Eg, to send a diff of your changes to pastebin it for review,
 issue the following command:
 
-  git diff | pastebinit
+  svn diff | pastebinit
 
 Which will output an url point to its pastebin entry.
 
@@ -386,7 +362,7 @@ Code Review
 Codereview, or Reitveld is a free web tool for reviewing and discussion of a patch.
 It requires a Google account for both uploader and reviewer. There's a script in the flumotion 
 module which facilities this.
-To upload your changes in the current git directory, issue the following command::
+To upload your changes in the current svn directory, issue the following command::
 
   python tools/codereview-upload.py
 
@@ -419,44 +395,20 @@ there are often improvements coming directly from the flumotion developers.
 
 To run a pychecker test on your source code, type the following::
 
-  make pychecker
-
-If this fails, it will run again, this time with more verbose output showing
-all the warnings.  You can run::
-
-  make pycheckerverbose
-
-to run with verbose warnings.
-
-You can also run only the GStreamer 0.10-specific code or independent code::
-
-  make pychecker010
-  make pycheckerindep
-  make pycheckerverbose010
-  make pycheckerverboseindep
-
-If you want to run with a non-installed pychecker (for example, to try
-against CVS), use::
-
-  make PYCHECKER="python ~/dev/ext/pychecker/head/pychecker/checker.py" pychecker
-
-If you want to run it on just one or a set of files with the same configuration,
-try::
-
-  make PYCHECKER="python ~/dev/ext/pychecker/head/pychecker/checker.py" PYCHECKER_WHITELIST=flumotion/worker/checks/audio.py pychecker
+  make pycheck
 
 See more info at the `pychecker homepage <http://pychecker.sourceforge.net/>`_.
 
 Flumotion documentation
 -----------------------
-In the git flumotion project there is a random docs directory. Some info there is very useful and
+In the svn flumotion project there is a random docs directory. Some info there is very useful and
 some may be outdated. You can read it from your checkout directory or online from `here
-<http://code.flumotion.com/cgit/flumotion/tree/doc/random>`_.
+<https://code.fluendo.com/flumotion/trac/browser/flumotion/trunk/doc/random/>`_.
 
 Also, you could checkout the flumotion-doc project and build the most up to date documentation
 yourself (by using autogen.sh and make, as usual)::
 
-  git clone git@code.flumotion.com:flumotion-doc.git
+  svn checkout https://code.fluendo.com/flumotion/svn/flumotion-doc/trunk flumotion-doc
 
 Development process
 ===================
@@ -471,73 +423,77 @@ Links: `Open a new Ticket`_
 
 Generating a patch
 ------------------
-To generate a patch, first review carefully your changes using the git diff command::
+To generate a patch use the svn diff command from the project root directory::
 
-  git diff --color --word-diff
+  svn diff
 
-If you have created new files, remember to add them to the index::
+Review it carefully, it's usually easiest to do this by piping via colordiff and less::
 
-  git add new_file
+  svn diff | colordiff | less -R 
 
-Stage your changes and review what's going to be committed::
+If you have created new files, they won't show up. So remember to add them by doing::
 
-  git add -u .
-  git diff --staged --color --word-diff
+  svn add new_file
 
-Once everything is ready, commit your work::
+When you're satisfied with the changes, save the patch to disk::
 
-  git commit
+  svn diff > filename
 
-The commit message should be formated with a short description in one line
-(don't break it, even if it's bigger than 80 characters), and a paragraph after
-a line jump with the reviewer's name, a long description and the ticket
-beeing closed, if needed::
-
-  Fix bug in the UI
-
-  reviewed by: Major Rawls
-  A more detailed description on how the bug was fixed
-  should come here.
-  Fixes #1000
-
-And finally, generate a patch in e-mail format with the commit::
-
-  git format-patch HEAD~1
+filename can be anything, but it's recommended that you use a naming convention which scales.
+For instance use **XX_vY.diff** where **XX** is the name of the bug and **Y** is 
+an incremental counter. For instance, if you're submitting the first patch to bug 2249 
+you will call it 2249_v1.diff
 
 Committing
 ----------
 
-When you have your code reviewed you're ready to push it to the origin repository.
-First check which commits are going to be pushed from your local 'master' branch::
+When you have your code reviewed you're ready to check it into subversion.
+First, generate a changelog using either prepare-ChangeLog::
 
-  git cherry -v origin/master
+  $ prepare-ChangeLog
 
-You can double check all the changes that are going to pushed to the remote repository::
+or `moap`_::
 
-  git diff -p origin/master
+  $ moap cl pr
 
-Finally, push your commits to the remote repository::
+.. _moap: http://thomas.apestaart.org/moap/trac/
 
-  git push origin master
+You should now end up with an auto-generated entry in the ChangeLog file.
+Open it with your favorite editor and describe what you've just done, an example
+of a good ChangeLog entry is::
 
-If the repository refuses your commit because of PEP-8 style issues, you
-might find the following git command useful::
+ 2006-05-25  Thomas Vander Stichele  <thomas at apestaart dot org>
 
-  git rebase -i HEAD~2
+	* flumotion/admin/gtk/client.py:
+	privatize and rename self._sidepane
+	clear the sidepane when a component goes to sleeping.
+	Fixes #263.
 
-It allows you to interactively rebase your current branch, and squash the
-PEP8 fix commit into the previous commit.
+The last part of the commit message, "Fixes #263" is a directive to trac. It means that
+this commit solves the specified issue. It'll close the ticket and add a comment to it
+referencing the commit. Always include this directive if the commit closes a real bug.
 
-Closing a ticket
-----------------
+You can now do a final review of the changes to be committed using::
 
-Every ticket that gets closed should have a version.
-Every ticket that gets closed should have its milestone set to the next
-release that will be made (so that it shows up in the list of fixed tickets
-when the release gets made).
+  $ moap cl diff
 
-There is a commit hook that automatically closes the ticket as fixed if your
-commit message contains 'Fixes #...' or 'Closes '#...'
+and commit them with the following command::
+
+  $ moap cl ci
+
+which will automatically use the ChangeLog entry as the checkin message.
+
+Alternatively, you can directly use Subversion to review the changes::
+
+  $ svn diff
+
+and commit them::
+
+  $ svn commit
+
+which will open up your editor of choice (configurable through the SVN_EDITOR variable).
+You should use the complete ChangeLog entry as the checkin message.
+
 
 Updating translation
 --------------------

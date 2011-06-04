@@ -21,7 +21,9 @@
 
 import time
 
-from flumotion.common import errors
+from twisted.python import reflect
+
+from flumotion.common import errors, log, common
 from flumotion.component.plugs import base
 
 __version__ = "$Rev$"

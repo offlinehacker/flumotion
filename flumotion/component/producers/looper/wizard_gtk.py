@@ -27,7 +27,8 @@ import gtk
 
 from zope.interface import implements
 
-from flumotion.common import messages
+from flumotion.configure import configure
+from flumotion.common import errors, messages
 from flumotion.common.i18n import N_, gettexter
 from flumotion.admin.gtk.basesteps import AudioProducerStep, VideoProducerStep
 from flumotion.admin.assistant.interfaces import IProducerPlugin

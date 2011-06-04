@@ -126,11 +126,11 @@ class TokenBucketConsumer(log.Loggable):
         elapsed = now - self._lastDrip
         self._lastDrip = now
 
-        newBytes = self.fillRate * elapsed
+        bytes = self.fillRate * elapsed
         # Note that this does introduce rounding errors - not particularly
         # important if the drip interval is reasonably high, though. These will
         # cause the actual rate to be lower than the nominal rate.
-        self.fillLevel = int(min(self.fillLevel + newBytes, self.maxLevel))
+        self.fillLevel = int(min(self.fillLevel + bytes, self.maxLevel))
 
         self._tryWrite()
 
@@ -142,16 +142,16 @@ class TokenBucketConsumer(log.Loggable):
             # If we're permitted to write at the moment, do so.
             offset, buf = self._buffers[0]
             sendbuf = buf[offset:offset+self.fillLevel]
-            sendBytes = len(sendbuf)
+            bytes = len(sendbuf)
 
-            if sendBytes + offset == len(buf):
+            if bytes + offset == len(buf):
                 self._buffers.pop(0)
             else:
-                self._buffers[0] = (offset + sendBytes, buf)
-            self._buffersSize -= sendBytes
+                self._buffers[0] = (offset+bytes, buf)
+            self._buffersSize -= bytes
 
             self.consumer.write(sendbuf)
-            self.fillLevel -= sendBytes
+            self.fillLevel -= bytes
 
         if self._buffersSize > 0:
             # If we have data (and we're not already waiting for our next drip

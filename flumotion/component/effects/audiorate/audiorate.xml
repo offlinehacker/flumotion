@@ -1,27 +1,27 @@
 <registry>
   <bundles>
 
-    <bundle name="audioconvert-base">
+    <bundle name="audiorate-base">
         <dependencies>
             <dependency name="component" />
         </dependencies>
 
         <directories>
-            <directory name="flumotion/component/effects/audioconvert">
+            <directory name="flumotion/component/effects/audiorate">
                 <filename location="__init__.py" />
             </directory>
         </directories>
     </bundle>
 
-    <bundle name="audioconvert-effect">
+    <bundle name="audiorate-effect">
         <dependencies>
             <dependency name="component" />
-            <dependency name="audioconvert-base" />
+            <dependency name="audiorate-base" />
         </dependencies>
 
         <directories>
-            <directory name="flumotion/component/effects/audioconvert">
-                <filename location="audioconvert.py" />
+            <directory name="flumotion/component/effects/audiorate">
+                <filename location="audiorate.py" />
             </directory>
         </directories>
     </bundle>

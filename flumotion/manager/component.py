@@ -25,19 +25,21 @@ manager-side objects for components
 API Stability: semi-stable
 """
 
+import time
+
+from twisted.spread import pb
 from twisted.internet import reactor, defer
+from twisted.internet import error as terror
 from twisted.python.failure import Failure
 from zope.interface import implements
 
+from flumotion.configure import configure
 from flumotion.manager import base, config
-from flumotion.common import errors, interfaces, log, planet
+from flumotion.common import errors, interfaces, keycards, log, planet
 from flumotion.common import messages, common
-
-# registers serializable
-from flumotion.common import keycards
-
 from flumotion.common.i18n import N_, gettexter
 from flumotion.common.planet import moods
+from flumotion.twisted import flavors
 
 __version__ = "$Rev$"
 T_ = gettexter()
@@ -414,16 +416,6 @@ class ComponentAvatar(base.ManagerAvatar):
         self.debug('connecting feeder %s to feed %s', feederName, fullFeedId)
         return self.mindCallRemote('feedTo', feederName, fullFeedId,
                                    host, port)
-
-    def modifyProperty(self, property_name, value):
-        """
-        Tell the remote component to modify a property with a new value.
-
-        @param property_name: The name of the property to change
-        @param value: The new value of the property
-        @rtype: L{twisted.internet.defer.Deferred}
-        """
-        return self.mindCallRemote('modifyProperty', property_name, value)
 
     # FIXME: maybe make a BouncerComponentAvatar subclass ?
 

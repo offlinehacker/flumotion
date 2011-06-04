@@ -25,19 +25,21 @@ Flumotion Perspective Broker using keycards
 Inspired by L{twisted.spread.pb}
 """
 
+from twisted.cred import checkers, credentials
 from twisted.cred.portal import IRealm, Portal
 from twisted.internet import protocol, defer
 from twisted.internet import error as terror
-from twisted.python import log, reflect
+from twisted.python import log, reflect, failure
 from twisted.spread import pb, flavors
 from twisted.spread.pb import PBClientFactory
 from zope.interface import implements
 
 from flumotion.configure import configure
-from flumotion.common import keycards, errors
+from flumotion.common import keycards, interfaces, common, errors
 from flumotion.common import log as flog
 from flumotion.common.netutils import addressGetHost
 from flumotion.twisted import reflect as freflect
+from flumotion.twisted import credentials as fcredentials
 from flumotion.twisted.compat import reactor
 
 __version__ = "$Rev$"
@@ -578,11 +580,11 @@ class Referenceable(pb.Referenceable, flog.Loggable):
         # all this malarkey is to avoid actually interpolating variables
         # if it is not needed
         startArgs = [self.remoteLogName, debugClass, message]
-        formatString, debugArgs = flog.getFormatArgs(
+        format, debugArgs = flog.getFormatArgs(
             '%s --> %s: remote_%s(', startArgs,
             ')', (), args, kwargs)
         # log going into the method
-        logKwArgs = self.doLog(level, method, formatString, *debugArgs)
+        logKwArgs = self.doLog(level, method, format, *debugArgs)
 
         # invoke the remote_ method
         d = defer.maybeDeferred(method, *args, **kwargs)
@@ -590,17 +592,17 @@ class Referenceable(pb.Referenceable, flog.Loggable):
         # log coming out of the method
 
         def callback(result):
-            formatString, debugArgs = flog.getFormatArgs(
+            format, debugArgs = flog.getFormatArgs(
                 '%s <-- %s: remote_%s(', startArgs,
                 '): %r', (flog.ellipsize(result), ), args, kwargs)
-            self.doLog(level, -1, formatString, *debugArgs, **logKwArgs)
+            self.doLog(level, -1, format, *debugArgs, **logKwArgs)
             return result
 
         def errback(failure):
-            formatString, debugArgs = flog.getFormatArgs(
+            format, debugArgs = flog.getFormatArgs(
                 '%s <-- %s: remote_%s(', startArgs,
                 '): failure %r', (failure, ), args, kwargs)
-            self.doLog(level, -1, formatString, *debugArgs, **logKwArgs)
+            self.doLog(level, -1, format, *debugArgs, **logKwArgs)
             return failure
 
         d.addCallbacks(callback, errback)
@@ -641,11 +643,11 @@ class Avatar(pb.Avatar, flog.Loggable):
             level = flog.LOG
         debugClass = self.logCategory.upper()
         startArgs = [self.remoteLogName, debugClass, message]
-        formatString, debugArgs = flog.getFormatArgs(
+        format, debugArgs = flog.getFormatArgs(
             '%s --> %s: perspective_%s(', startArgs,
             ')', (), args, kwargs)
         # log going into the method
-        logKwArgs = self.doLog(level, method, formatString, *debugArgs)
+        logKwArgs = self.doLog(level, method, format, *debugArgs)
 
         # invoke the perspective_ method
         d = defer.maybeDeferred(method, *args, **kwargs)
@@ -653,17 +655,17 @@ class Avatar(pb.Avatar, flog.Loggable):
         # log coming out of the method
 
         def callback(result):
-            formatString, debugArgs = flog.getFormatArgs(
+            format, debugArgs = flog.getFormatArgs(
                 '%s <-- %s: perspective_%s(', startArgs,
                 '): %r', (flog.ellipsize(result), ), args, kwargs)
-            self.doLog(level, -1, formatString, *debugArgs, **logKwArgs)
+            self.doLog(level, -1, format, *debugArgs, **logKwArgs)
             return result
 
         def errback(failure):
-            formatString, debugArgs = flog.getFormatArgs(
+            format, debugArgs = flog.getFormatArgs(
                 '%s <-- %s: perspective_%s(', startArgs,
                 '): failure %r', (failure, ), args, kwargs)
-            self.doLog(level, -1, formatString, *debugArgs, **logKwArgs)
+            self.doLog(level, -1, format, *debugArgs, **logKwArgs)
             return failure
 
         d.addCallbacks(callback, errback)
@@ -714,10 +716,10 @@ class Avatar(pb.Avatar, flog.Loggable):
         if level is not None:
             debugClass = str(self.__class__).split(".")[-1].upper()
             startArgs = [self.remoteLogName, debugClass, name]
-            formatString, debugArgs = flog.getFormatArgs(
+            format, debugArgs = flog.getFormatArgs(
                 '%s --> %s: callRemote(%s, ', startArgs,
                 ')', (), args, kwargs)
-            logKwArgs = self.doLog(level, stackDepth - 1, formatString,
+            logKwArgs = self.doLog(level, stackDepth - 1, format,
                                    *debugArgs)
 
         if not self.mind:
@@ -726,17 +728,17 @@ class Avatar(pb.Avatar, flog.Loggable):
             return defer.fail(errors.NotConnectedError())
 
         def callback(result):
-            formatString, debugArgs = flog.getFormatArgs(
+            format, debugArgs = flog.getFormatArgs(
                 '%s <-- %s: callRemote(%s, ', startArgs,
                 '): %r', (flog.ellipsize(result), ), args, kwargs)
-            self.doLog(level, -1, formatString, *debugArgs, **logKwArgs)
+            self.doLog(level, -1, format, *debugArgs, **logKwArgs)
             return result
 
         def errback(failure):
-            formatString, debugArgs = flog.getFormatArgs(
+            format, debugArgs = flog.getFormatArgs(
                 '%s <-- %s: callRemote(%s, ', startArgs,
                 '): %r', (failure, ), args, kwargs)
-            self.doLog(level, -1, formatString, *debugArgs, **logKwArgs)
+            self.doLog(level, -1, format, *debugArgs, **logKwArgs)
             return failure
 
         d = self.mind.callRemote(name, *args, **kwargs)

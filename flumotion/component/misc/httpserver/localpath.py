@@ -22,18 +22,14 @@
 import os
 
 from flumotion.component.misc.httpserver import fileprovider
-from flumotion.component.misc.httpserver import ourmimetypes
+from flumotion.component.misc.httpserver import mimetypes
 from flumotion.component.misc.httpserver.fileprovider import InsecureError
 from flumotion.component.misc.httpserver.fileprovider import NotFoundError
 
 
-def reloadMimeTypes():
-    LocalPath.contentTypes = ourmimetypes.MimeTypes()
-
-
 class LocalPath(fileprovider.FilePath):
 
-    contentTypes = ourmimetypes.MimeTypes()
+    contentTypes = mimetypes.MimeTypes()
 
     # Override parent class property by an attribute
     mimeType = None

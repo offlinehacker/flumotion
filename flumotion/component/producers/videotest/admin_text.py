@@ -19,9 +19,11 @@
 
 # Headers in this file shall remain intact.
 
+from flumotion.component.base.admin_text import BaseAdminText
+
 import string
 
-from flumotion.component.base.admin_text import BaseAdminText
+from twisted.internet import defer
 
 __version__ = "$Rev$"
 

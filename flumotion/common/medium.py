@@ -22,17 +22,18 @@
 """base classes for PB client-side mediums.
 """
 
+import time
+
 from twisted.spread import pb
 from twisted.internet import defer
 from zope.interface import implements
 
-from flumotion.common import log, interfaces, bundleclient, errors, netutils
+from flumotion.common import log, interfaces, bundleclient, errors
+from flumotion.common import messages
+from flumotion.common.netutils import addressGetHost
 from flumotion.configure import configure
 from flumotion.twisted import pb as fpb
 from flumotion.twisted.compat import reactor
-
-# register serializables
-from flumotion.common import messages
 
 __version__ = "$Rev$"
 
@@ -87,8 +88,8 @@ class BaseMedium(fpb.Referenceable):
             self.debug("could not get connection info, reason %r" % e)
         if tarzan and jane:
             self.debug("connection is from me on %s to remote on %s" % (
-                netutils.addressGetHost(tarzan),
-                netutils.addressGetHost(jane)))
+                addressGetHost(tarzan),
+                addressGetHost(jane)))
 
     def hasRemoteReference(self):
         """
@@ -114,11 +115,11 @@ class BaseMedium(fpb.Referenceable):
         if level is not None:
             debugClass = str(self.__class__).split(".")[-1].upper()
             startArgs = [self.remoteLogName, debugClass, name]
-            formatString, debugArgs = log.getFormatArgs(
+            format, debugArgs = log.getFormatArgs(
                 '%s --> %s: callRemote(%s, ', startArgs,
                 ')', (), args, kwargs)
             logKwArgs = self.doLog(level, stackDepth - 1,
-                                   formatString, *debugArgs)
+                                   format, *debugArgs)
 
         if not self.remote:
             self.warning('Tried to callRemote(%s), but we are disconnected'
@@ -126,17 +127,17 @@ class BaseMedium(fpb.Referenceable):
             return defer.fail(errors.NotConnectedError())
 
         def callback(result):
-            formatString, debugArgs = log.getFormatArgs(
+            format, debugArgs = log.getFormatArgs(
                 '%s <-- %s: callRemote(%s, ', startArgs,
                 '): %s', (log.ellipsize(result), ), args, kwargs)
-            self.doLog(level, -1, formatString, *debugArgs, **logKwArgs)
+            self.doLog(level, -1, format, *debugArgs, **logKwArgs)
             return result
 
         def errback(failure):
-            formatString, debugArgs = log.getFormatArgs(
+            format, debugArgs = log.getFormatArgs(
                 '%s <-- %s: callRemote(%s, ', startArgs,
                 '): %r', (failure, ), args, kwargs)
-            self.doLog(level, -1, formatString, *debugArgs, **logKwArgs)
+            self.doLog(level, -1, format, *debugArgs, **logKwArgs)
             return failure
 
         d = self.remote.callRemote(name, *args, **kwargs)

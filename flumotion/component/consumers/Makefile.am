@@ -11,8 +11,7 @@ clean-local:
 
 SUBDIRS = \
 	disker \
-	fgdp \
+	gdp \
 	httpstreamer \
-	pipeline \
 	preview \
 	shout2

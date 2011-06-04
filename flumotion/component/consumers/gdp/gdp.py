@@ -18,3 +18,15 @@
 # See "LICENSE.Flumotion" in the source distribution for more information.
 
 # Headers in this file shall remain intact.
+
+from flumotion.component import feedcomponent
+
+__version__ = "$Rev: 6125 $"
+
+
+class GDPConsumer(feedcomponent.ParseLaunchComponent):
+
+    def get_pipeline_string(self, properties):
+        port = properties['port']
+
+        return 'gdppay ! tcpserversink port=%d' % port

@@ -33,6 +33,7 @@ from twisted.internet import reactor, defer
 from twisted.spread import pb
 from zope.interface import implements
 
+from flumotion.configure import configure
 from flumotion.component import component as basecomponent
 from flumotion.component import feed
 from flumotion.common import common, interfaces, errors, log, pygobject, \
@@ -347,8 +348,7 @@ class ParseLaunchComponent(FeedComponent):
             self.warning('Could not parse pipeline: %s' % e.message)
             m = messages.Error(T_(N_(
                 "GStreamer error: could not parse component pipeline.")),
-                debug="Reason: %s\nPipeline: %s" % (
-                    e.message, self.pipeline_string))
+                debug=e.message)
             self.addMessage(m)
             raise errors.PipelineParseError(e.message)
 
@@ -439,13 +439,6 @@ class ParseLaunchComponent(FeedComponent):
         return ''.join(out)
 
     def parse_pipeline(self, pipeline):
-        """
-        Parse the pipeline template into a fully expanded pipeline string.
-
-        @type  pipeline: str
-
-        @rtype: str
-        """
         pipeline = " ".join(pipeline.split())
         self.debug('Creating pipeline, template is %s', pipeline)
 
@@ -586,7 +579,7 @@ class PostProcEffect (Effect):
         Plug the effect in the pipeline unlinking the source element with it's
         downstream peer
         """
-        if self.plugged:
+        if self.plugged == True:
             return
         # Unlink the source pad of the source element after which we need
         # are going to be plugged
@@ -733,7 +726,7 @@ class ReconfigurableComponent(ParseLaunchComponent):
         def input_reset_event(pad, event):
             if event.type != gst.EVENT_CUSTOM_DOWNSTREAM:
                 return True
-            if not gstreamer.event_is_flumotion_reset(event):
+            if event.get_structure().get_name() != 'flumotion-reset':
                 return True
             if self.disconnectedPads:
                 return False
@@ -794,9 +787,12 @@ class ReconfigurableComponent(ParseLaunchComponent):
             pad.set_blocked_async(False, self._on_eater_blocked)
 
     def _send_reset_event(self):
+        event = gst.event_new_custom(gst.EVENT_CUSTOM_DOWNSTREAM,
+                                     gst.Structure('flumotion-reset'))
+
         for elem in self.get_output_elements():
             pad = elem.get_pad('sink')
-            pad.send_event(gstreamer.flumotion_reset_event())
+            pad.send_event(event)
 
     def _unlink_pads(self, element, directions):
         for pad in element.pads():
@@ -946,35 +942,6 @@ class MuxerComponent(MultiInputParseLaunchComponent):
     def get_link_pad(self, muxer, srcpad, caps):
         return muxer.get_compatible_pad(srcpad, caps)
 
-    def buffer_probe_cb(self, pad, buffer, depay, eaterAlias):
-        pad = depay.get_pad("src")
-        caps = pad.get_negotiated_caps()
-        if not caps:
-            return False
-        srcpad_to_link = self.get_eater_srcpad(eaterAlias)
-        muxer = self.pipeline.get_by_name("muxer")
-        self.debug("Trying to get compatible pad for pad %r with caps %s",
-            srcpad_to_link, caps)
-        linkpad = self.get_link_pad(muxer, srcpad_to_link, caps)
-        if not linkpad:
-            m = messages.Error(T_(N_(
-                "The incoming data is not compatible with this muxer.")),
-                debug="Caps %s not compatible with this muxer." % (
-                    caps.to_string()))
-            self.addMessage(m)
-            # this is the streaming thread, cannot set state here
-            # so we do it in the mainloop
-            reactor.callLater(0, self.pipeline.set_state, gst.STATE_NULL)
-            return True
-        self.debug("Got link pad %r", linkpad)
-        srcpad_to_link.link(linkpad)
-        depay.get_pad("src").remove_buffer_probe(self._probes[eaterAlias])
-        if srcpad_to_link.is_blocked():
-            self.is_blocked_cb(srcpad_to_link, True)
-        else:
-            srcpad_to_link.set_blocked_async(True, self.is_blocked_cb)
-        return True
-
     def configure_pipeline(self, pipeline, properties):
         """
         Method not overridable by muxer subclasses.
@@ -986,11 +953,40 @@ class MuxerComponent(MultiInputParseLaunchComponent):
         self.fired_eaters = 0
         self._probes = {} # depay element -> id
 
+        def buffer_probe_cb(a, b, depay, eaterAlias):
+            pad = depay.get_pad("src")
+            caps = pad.get_negotiated_caps()
+            if not caps:
+                return False
+            srcpad_to_link = self.get_eater_srcpad(eaterAlias)
+            muxer = self.pipeline.get_by_name("muxer")
+            self.debug("Trying to get compatible pad for pad %r with caps %s",
+                srcpad_to_link, caps)
+            linkpad = self.get_link_pad(muxer, srcpad_to_link, caps)
+            self.debug("Got link pad %r", linkpad)
+            if not linkpad:
+                m = messages.Error(T_(N_(
+                    "The incoming data is not compatible with this muxer.")),
+                    debug="Caps %s not compatible with this muxer." % (
+                        caps.to_string()))
+                self.addMessage(m)
+                # this is the streaming thread, cannot set state here
+                # so we do it in the mainloop
+                reactor.callLater(0, self.pipeline.set_state, gst.STATE_NULL)
+                return True
+            srcpad_to_link.link(linkpad)
+            depay.get_pad("src").remove_buffer_probe(self._probes[depay])
+            if srcpad_to_link.is_blocked():
+                self.is_blocked_cb(srcpad_to_link, True)
+            else:
+                srcpad_to_link.set_blocked_async(True, self.is_blocked_cb)
+            return True
+
         for e in self.eaters:
             depay = self.get_element(self.eaters[e].depayName)
-            self._probes[e] = \
+            self._probes[depay] = \
                 depay.get_pad("src").add_buffer_probe(
-                    self.buffer_probe_cb, depay, e)
+                    buffer_probe_cb, depay, e)
 
     def is_blocked_cb(self, pad, is_blocked):
         if is_blocked:

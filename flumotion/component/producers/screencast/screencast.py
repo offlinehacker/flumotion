@@ -21,6 +21,7 @@
 
 from flumotion.common import errors, gstreamer, messages
 from flumotion.component import feedcomponent
+from flumotion.component.effects.volume import volume
 
 __version__ = "$Rev$"
 

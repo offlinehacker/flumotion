@@ -31,29 +31,11 @@ __version__ = "$Rev$"
 
 
 class PadMonitor(log.Loggable):
-    """
-    I monitor data flow on a GStreamer pad.
-    I regularly schedule a buffer probe call at PAD_MONITOR_PROBE_INTERVAL.
-    I regularly schedule a check call at PAD_MONITOR_CHECK_INTERVAL
-    that makes sure a buffer probe was triggered since the last check call.
-    """
-
-    PAD_MONITOR_PROBE_INTERVAL = 5.0
-    PAD_MONITOR_CHECK_INTERVAL = PAD_MONITOR_PROBE_INTERVAL * 2.5
+    PAD_MONITOR_PROBE_FREQUENCY = 5.0
+    PAD_MONITOR_TIMEOUT = PAD_MONITOR_PROBE_FREQUENCY * 2.5
 
     def __init__(self, pad, name, setActive, setInactive):
-        """
-        @type  pad:         L{gst.Pad}
-        @type  name:        str
-        @param setActive:   a callable that will be called when the pad is
-                            considered active, taking the name of the monitor.
-        @type  setActive:   callable
-        @param setInactive: a callable that will be called when the pad is
-                            considered inactive, taking the name of the
-                            monitor.
-        @type  setInactive: callable
-        """
-        self._last_data_time = -1 # system time in epoch secs of last reception
+        self._last_data_time = -1
         self._pad = pad
         self.name = name
         self._active = False
@@ -68,12 +50,12 @@ class PadMonitor(log.Loggable):
         # w.r.t. the GIL.
         self._probe_id = {}
 
-        self.check_poller = Poller(self._probe_timeout,
-                                   self.PAD_MONITOR_PROBE_INTERVAL,
+        self.check_poller = Poller(self._check_timeout,
+                                   self.PAD_MONITOR_PROBE_FREQUENCY,
                                    immediately=True)
 
-        self.watch_poller = Poller(self._check_timeout,
-                                   self.PAD_MONITOR_CHECK_INTERVAL)
+        self.watch_poller = Poller(self._watch_timeout,
+                                   self.PAD_MONITOR_TIMEOUT)
 
     def logMessage(self, message, *args):
         if self._first:
@@ -89,7 +71,7 @@ class PadMonitor(log.Loggable):
         self.watch_poller.stop()
         self._running = False
 
-        # implementation closely tied to _probe_timeout wrt to GIL
+        # implementation closely tied to _check_timeout wrt to GIL
         # tricks, threadsafety, and getting the probe deferred to
         # actually return
         d, probe_id = self._probe_id.pop("id", (None, None))
@@ -97,8 +79,7 @@ class PadMonitor(log.Loggable):
             self._pad.remove_buffer_probe(probe_id)
             d.callback(None)
 
-    def _probe_timeout(self):
-        # called every so often to install a probe callback
+    def _check_timeout(self):
 
         def probe_cb(pad, buffer):
             """
@@ -137,8 +118,7 @@ class PadMonitor(log.Loggable):
         self._probe_id['id'] = (d, self._pad.add_buffer_probe(probe_cb))
         return d
 
-    def _check_timeout(self):
-        # called every so often to check that a probe callback was triggered
+    def _watch_timeout(self):
         self.log('last buffer for %s at %r', self.name, self._last_data_time)
 
         now = time.time()
@@ -154,26 +134,17 @@ class PadMonitor(log.Loggable):
             # We received data at some time in the past.
             delta = now - self._last_data_time
 
-            if self._active and delta > self.PAD_MONITOR_CHECK_INTERVAL:
+            if self._active and delta > self.PAD_MONITOR_TIMEOUT:
                 self.info("No data received on pad %s for > %r seconds, "
                           "setting to hungry",
-                          self.name, self.PAD_MONITOR_CHECK_INTERVAL)
+                          self.name, self.PAD_MONITOR_TIMEOUT)
                 self.setInactive()
-            elif not self._active and delta < self.PAD_MONITOR_CHECK_INTERVAL:
+            elif not self._active and delta < self.PAD_MONITOR_TIMEOUT:
                 self.info("Receiving data again on pad %s, flow active",
                     self.name)
                 self.setActive()
 
     def addWatch(self, setActive, setInactive):
-        """
-        @param setActive:   a callable that will be called when the pad is
-                            considered active, taking the name of the monitor.
-        @type  setActive:   callable
-        @param setInactive: a callable that will be called when the pad is
-                            considered inactive, taking the name of the
-                            monitor.
-        @type  setInactive: callable
-        """
         self._doSetActive.append(setActive)
         self._doSetInactive.append(setInactive)
 
@@ -195,7 +166,7 @@ class EaterPadMonitor(PadMonitor):
         PadMonitor.__init__(self, pad, name, setActive, setInactive)
 
         self._reconnectPoller = Poller(lambda: reconnectEater(*args),
-                                       self.PAD_MONITOR_CHECK_INTERVAL,
+                                       self.PAD_MONITOR_TIMEOUT,
                                        start=False)
 
     def setInactive(self):
@@ -235,9 +206,6 @@ class EaterPadMonitor(PadMonitor):
 
 
 class PadMonitorSet(dict, log.Loggable):
-    """
-    I am a dict of monitor name -> monitor.
-    """
 
     def __init__(self, setActive, setInactive):
         # These callbacks will be called when the set as a whole is

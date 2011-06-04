@@ -23,13 +23,13 @@
 HAS_MODULES = False
 try:
     from icalendar import vDatetime
+    from dateutil import tz
     HAS_MODULES = True
 except ImportError:
     pass
 
 import os
 import tempfile
-import time
 from datetime import datetime, timedelta
 
 from flumotion.common import testsuite
@@ -44,7 +44,6 @@ from flumotion.component.bouncers.algorithms import icalbouncer as \
 from flumotion.component.base import scheduler
 
 from flumotion.common import eventcalendar
-from flumotion.common import tz
 
 
 def _get_config(path=None):
@@ -102,7 +101,7 @@ class TestIcalBouncerRunning(testsuite.TestCase, RequiredModulesMixin):
 
     def setUp(self):
         self.bouncer = None
-        self.now = datetime.now(tz.UTC)
+        self.now = datetime.now(eventcalendar.UTC)
         self.a_day_ago = self.now - timedelta(days=1)
         self.half_an_hour_ago = self.now - timedelta(minutes=30)
         self.in_half_an_hour = self.now + timedelta(minutes=30)
@@ -276,8 +275,8 @@ class TestIcalBouncerTZID(TestIcalBouncerRunning, RequiredModulesMixin):
 class TestIcalBouncerFloating(TestIcalBouncerRunning, RequiredModulesMixin):
 
     def testApprovedBothFloating(self):
-        new_start = self.half_an_hour_ago.astimezone(tz.LOCAL)
-        new_end = self.in_half_an_hour.astimezone(tz.LOCAL)
+        new_start = self.half_an_hour_ago.astimezone(eventcalendar.LOCAL)
+        new_end = self.in_half_an_hour.astimezone(eventcalendar.LOCAL)
         new_start_naive = new_start.replace(tzinfo=None)
         new_end_naive = new_end.replace(tzinfo=None)
 
@@ -291,7 +290,7 @@ class TestIcalBouncerFloating(TestIcalBouncerRunning, RequiredModulesMixin):
         return d
 
     def testDeniedUTCAndFloating(self):
-        new_start = self.a_day_ago.astimezone(tz.LOCAL)
+        new_start = self.a_day_ago.astimezone(eventcalendar.LOCAL)
         new_start_naive = new_start.replace(tzinfo=None)
 
         data = self.ical_from_specs('', new_start_naive,
@@ -310,16 +309,12 @@ class TestIcalBouncerFloating(TestIcalBouncerRunning, RequiredModulesMixin):
                 del os.environ['TZ']
             else:
                 os.environ['TZ'] = oldTZ
-            time.tzset()
-            eventcalendar.tz.LOCAL = tz.LocalTimezone()
             return result
 
         new_end_naive = self.half_an_hour_ago.replace(tzinfo=None)
 
         oldTZ = os.environ.get('TZ', None)
         os.environ['TZ'] = 'US/Pacific'
-        time.tzset()
-        eventcalendar.tz.LOCAL = tz.LocalTimezone()
 
         data = self.ical_from_specs('', self.half_an_hour_ago,
                                     '', new_end_naive)
@@ -336,7 +331,7 @@ class TestIcalBouncerOverlap(testsuite.TestCase, RequiredModulesMixin):
 
     def setUp(self):
         self.bouncer = None
-        self.now = datetime.now(tz.UTC)
+        self.now = datetime.now(eventcalendar.UTC)
         td = icalbounceralgorithm.IcalBouncerAlgorithm.maxKeyCardDuration
         self.maxKeyCardDuration = max(td.days * 24 * 60 * 60 + td.seconds + \
                                             td.microseconds / 1e6, 0)

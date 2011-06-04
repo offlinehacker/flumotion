@@ -20,7 +20,6 @@ flumotion_PYTHON = \
 	errors.py \
 	fraction.py \
 	format.py \
-	formatting.py \
 	fxml.py \
 	gstreamer.py \
 	identity.py \
@@ -49,7 +48,6 @@ flumotion_PYTHON = \
 	signals.py \
 	startset.py \
 	testsuite.py \
-	tz.py \
 	vfs.py \
 	vfsgio.py \
 	vfsgnome.py \

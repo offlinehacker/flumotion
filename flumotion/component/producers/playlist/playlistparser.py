@@ -133,30 +133,30 @@ class Playlist(object, log.Loggable):
         # prev starts strictly before the new item
         # next starts after the new item, and ends after the
         # end of the new item
-        prevItem = nextItem = None
+        prev = next = None
         item = self.items
         while item:
             if item.timestamp < newitem.timestamp:
-                prevItem = item
+                prev = item
             else:
                 break
             item = item.next
 
-        if prevItem:
-            item = prevItem.next
+        if prev:
+            item = prev.next
         while item:
             if (item.timestamp > newitem.timestamp and
                     item.timestamp + item.duration >
                     newitem.timestamp + newitem.duration):
-                nextItem = item
+                next = item
                 break
             item = item.next
 
-        if prevItem:
+        if prev:
             # Then things between prev and next (next might be None) are to be
             # deleted. Do so.
-            cur = prevItem.next
-            while cur != nextItem:
+            cur = prev.next
+            while cur != next:
                 self._itemsById[cur.id].remove(cur)
                 if not self._itemsById[cur.id]:
                     del self._itemsById[cur.id]
@@ -164,33 +164,31 @@ class Playlist(object, log.Loggable):
                 cur = cur.next
 
         # update links.
-        if prevItem:
-            prevItem.next = newitem
-            newitem.prev = prevItem
+        if prev:
+            prev.next = newitem
+            newitem.prev = prev
         else:
             self.items = newitem
 
-        if nextItem:
-            newitem.next = nextItem
-            nextItem.prev = newitem
+        if next:
+            newitem.next = next
+            next.prev = newitem
 
         # Duration adjustments -> Reflect into gnonlin timeline
-        if prevItem and \
-                prevItem.timestamp + prevItem.duration > newitem.timestamp:
+        if prev and prev.timestamp + prev.duration > newitem.timestamp:
             self.debug("Changing duration of previous item from %d to %d",
-                prevItem.duration, newitem.timestamp - prevItem.timestamp)
-            prevItem.duration = newitem.timestamp - prevItem.timestamp
-            self.producer.adjustItemScheduling(prevItem)
+                prev.duration, newitem.timestamp - prev.timestamp)
+            prev.duration = newitem.timestamp - prev.timestamp
+            self.producer.adjustItemScheduling(prev)
 
-        if nextItem and \
-            newitem.timestamp + newitem.duration > nextItem.timestamp:
+        if next and newitem.timestamp + newitem.duration > next.timestamp:
             self.debug("Changing timestamp of next item from %d to %d to fit",
                 newitem.timestamp, newitem.timestamp + newitem.duration)
             ts = newitem.timestamp + newitem.duration
-            duration = nextItem.duration - (ts - nextItem.timestamp)
-            nextItem.duration = duration
-            nextItem.timestamp = ts
-            self.producer.adjustItemScheduling(nextItem)
+            duration = next.duration - (ts - next.timestamp)
+            next.duration = duration
+            next.timestamp = ts
+            self.producer.adjustItemScheduling(next)
 
         # Then we need to actually add newitem into the gnonlin timeline
         if not self.producer.scheduleItem(newitem):
@@ -448,10 +446,10 @@ class PlaylistXMLParser(PlaylistParser):
         if trailing[0] != '.' or trailing[3] != 'Z' or \
                 not trailing[1].isdigit() or not trailing[2].isdigit():
             raise fxml.ParserError("Invalid timestamp %s" % ts)
-        formatString = "%Y-%m-%dT%H:%M:%S"
+        format = "%Y-%m-%dT%H:%M:%S"
 
         try:
-            timestruct = time.strptime(tsmain, formatString)
+            timestruct = time.strptime(tsmain, format)
             return int(calendar.timegm(timestruct) * gst.SECOND)
         except ValueError:
             raise fxml.ParserError("Invalid timestamp %s" % ts)

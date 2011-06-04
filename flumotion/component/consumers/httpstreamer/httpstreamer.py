@@ -22,16 +22,15 @@
 import time
 
 import gst
-
 from twisted.cred import credentials
 from twisted.internet import reactor, error, defer
 from twisted.web import server
-
 from zope.interface import implements
 
 from flumotion.common import gstreamer, errors
 from flumotion.common import messages, netutils, interfaces
-from flumotion.common import format as formatting
+from flumotion.common.format import formatStorage, formatTime
+from flumotion.common.i18n import N_, gettexter
 from flumotion.component import feedcomponent
 from flumotion.component.base import http
 from flumotion.component.component import moods
@@ -39,13 +38,9 @@ from flumotion.component.consumers.httpstreamer import resources
 from flumotion.component.misc.porter import porterclient
 from flumotion.twisted import fdserver
 
-from flumotion.common.i18n import N_, gettexter
-
 __all__ = ['HTTPMedium', 'MultifdSinkStreamer']
 __version__ = "$Rev$"
-
 T_ = gettexter()
-
 STATS_POLL_INTERVAL = 10
 UI_UPDATE_THROTTLE_PERIOD = 2.0 # Don't update UI more than once every two
                                 # seconds
@@ -54,12 +49,10 @@ UI_UPDATE_THROTTLE_PERIOD = 2.0 # Don't update UI more than once every two
 # FIXME: generalize this class and move it out here ?
 
 
-class Stats(object):
+class Stats:
 
-    def __init__(self, sinks):
-        if not isinstance(sinks, list):
-            sinks = [sinks]
-        self.sinks = sinks
+    def __init__(self, sink):
+        self.sink = sink
 
         self.no_clients = 0
         self.clients_added_count = 0
@@ -148,12 +141,10 @@ class Stats(object):
             return self.getBytesReceived() * 8 / self.getUptime()
 
     def getBytesSent(self):
-        return sum(map(
-                lambda sink: sink.get_property('bytes-served'), self.sinks))
+        return self.sink.get_property('bytes-served')
 
     def getBytesReceived(self):
-        return max(map(
-                lambda sink: sink.get_property('bytes-to-serve'), self.sinks))
+        return self.sink.get_property('bytes-to-serve')
 
     def getUptime(self):
         return time.time() - self.start_time
@@ -185,14 +176,13 @@ class Stats(object):
 
         set('stream-mime', c.get_mime())
         set('stream-url', c.getUrl())
-        set('stream-uptime', formatting.formatTime(uptime))
+        set('stream-uptime', formatTime(uptime))
         bitspeed = bytes_received * 8 / uptime
         currentbitrate = self.getCurrentBitrate()
-        set('stream-bitrate', formatting.formatStorage(bitspeed) + 'bit/s')
+        set('stream-bitrate', formatStorage(bitspeed) + 'bit/s')
         set('stream-current-bitrate',
-            formatting.formatStorage(currentbitrate) + 'bit/s')
-        set('stream-totalbytes',
-            formatting.formatStorage(bytes_received) + 'Byte')
+            formatStorage(currentbitrate) + 'bit/s')
+        set('stream-totalbytes', formatStorage(bytes_received) + 'Byte')
         set('stream-bitrate-raw', bitspeed)
         set('stream-totalbytes-raw', bytes_received)
 
@@ -203,13 +193,10 @@ class Stats(object):
         set('clients-average', str(int(c.getAverageClients())))
 
         bitspeed = bytes_sent * 8 / uptime
-        set('consumption-bitrate',
-            formatting.formatStorage(bitspeed) + 'bit/s')
+        set('consumption-bitrate', formatStorage(bitspeed) + 'bit/s')
         set('consumption-bitrate-current',
-            formatting.formatStorage(
-                currentbitrate * c.getClients()) + 'bit/s')
-        set('consumption-totalbytes',
-            formatting.formatStorage(bytes_sent) + 'Byte')
+            formatStorage(currentbitrate * c.getClients()) + 'bit/s')
+        set('consumption-totalbytes', formatStorage(bytes_sent) + 'Byte')
         set('consumption-bitrate-raw', bitspeed)
         set('consumption-totalbytes-raw', bytes_sent)
 
@@ -283,7 +270,6 @@ class MultifdSinkStreamer(feedcomponent.ParseLaunchComponent, Stats):
                                 'recover-policy=3'
 
     componentMediumClass = HTTPMedium
-    defaultSyncMethod = 0
 
     def init(self):
         reactor.debug = True
@@ -294,7 +280,6 @@ class MultifdSinkStreamer(feedcomponent.ParseLaunchComponent, Stats):
         self.httpauth = None
         self.mountPoint = None
         self.burst_on_connect = False
-        self.timeout = 0L
 
         self.description = None
 
@@ -420,17 +405,16 @@ class MultifdSinkStreamer(feedcomponent.ParseLaunchComponent, Stats):
                 sink.set_property('buffers-max', 500)
         else:
             self.debug("no burst-on-connect, setting sync-method 0")
-            sink.set_property('sync-method', self.defaultSyncMethod)
+            sink.set_property('sync-method', 0)
 
             sink.set_property('buffers-soft-max', 250)
             sink.set_property('buffers-max', 500)
 
-    def configureAuthAndResource(self):
-        self.httpauth = http.HTTPAuthentication(self)
-        self.resource = resources.HTTPStreamingResource(self,
-                                                        self.httpauth)
+    def configure_pipeline(self, pipeline, properties):
+        Stats.__init__(self, sink=self.get_element('sink'))
 
-    def parseProperties(self, properties):
+        self._updateCallLaterId = reactor.callLater(10, self._updateStats)
+
         mountPoint = properties.get('mount-point', '')
         if not mountPoint.startswith('/'):
             mountPoint = '/' + mountPoint
@@ -452,10 +436,35 @@ class MultifdSinkStreamer(feedcomponent.ParseLaunchComponent, Stats):
         if self.description is None:
             self.description = "Flumotion Stream"
 
+        # FIXME: tie these together more nicely
+        self.httpauth = http.HTTPAuthentication(self)
+        self.resource = resources.HTTPStreamingResource(self,
+                                                        self.httpauth)
+
         # check how to set client sync mode
+        sink = self.get_element('sink')
         self.burst_on_connect = properties.get('burst-on-connect', False)
         self.burst_size = properties.get('burst-size', 0)
         self.burst_time = properties.get('burst-time', 0.0)
+
+        self.setup_burst_mode(sink)
+
+        if gstreamer.element_factory_has_property('multifdsink',
+                                                  'resend-streamheader'):
+            sink.set_property('resend-streamheader', False)
+        else:
+            self.debug("resend-streamheader property not available, "
+                       "resending streamheader when it changes in the caps")
+
+        sink.connect('deep-notify::caps', self._notify_caps_cb)
+
+        # these are made threadsafe using idle_add in the handler
+        sink.connect('client-added', self._client_added_handler)
+
+        # We now require a sufficiently recent multifdsink anyway that we can
+        # use the new client-fd-removed signal
+        sink.connect('client-fd-removed', self._client_fd_removed_cb)
+        sink.connect('client-removed', self._client_removed_cb)
 
         if 'client-limit' in properties:
             limit = int(properties['client-limit'])
@@ -506,9 +515,6 @@ class MultifdSinkStreamer(feedcomponent.ParseLaunchComponent, Stats):
                 logFilter.addIPFilter(f)
             self.resource.setLogFilter(logFilter)
 
-        if 'timeout' in properties:
-            self.timeout = properties['timeout'] * gst.SECOND
-
         self.type = properties.get('type', 'master')
         if self.type == 'slave':
             # already checked for these in do_check
@@ -518,54 +524,15 @@ class MultifdSinkStreamer(feedcomponent.ParseLaunchComponent, Stats):
 
         self.port = int(properties.get('port', 8800))
 
-    def configureSink(self, sink):
-        self.setup_burst_mode(sink)
-
-        if gstreamer.element_factory_has_property('multifdsink',
-                                                  'resend-streamheader'):
-            sink.set_property('resend-streamheader', False)
-        else:
-            self.debug("resend-streamheader property not available, "
-                       "resending streamheader when it changes in the caps")
-
-        sink.set_property('timeout', self.timeout)
-
-        sink.connect('deep-notify::caps', self._notify_caps_cb)
-
-        # these are made threadsafe using idle_add in the handler
-        sink.connect('client-added', self._client_added_handler)
-
-        # We now require a sufficiently recent multifdsink anyway that we can
-        # use the new client-fd-removed signal
-        sink.connect('client-fd-removed', self._client_fd_removed_cb)
-        sink.connect('client-removed', self._client_removed_cb)
-
-        sink.caps = None
-
-    def configure_pipeline(self, pipeline, properties):
-        Stats.__init__(self, self.get_element('sink'))
-        self._updateCallLaterId = reactor.callLater(10, self._updateStats)
-
-        self.configureAuthAndResource()
-        self.parseProperties(properties)
-
-        sink = self.get_element('sink')
-        self.configureSink(sink)
-
     def __repr__(self):
         return '<MultifdSinkStreamer (%s)>' % self.name
 
     def getMaxClients(self):
         return self.resource.maxclients
 
-    def hasCaps(self):
-        # all the sinks should have caps set
-        sinkHasCaps = map(lambda sink: sink.caps is not None, self.sinks)
-        return None not in sinkHasCaps
-
     def get_mime(self):
-        if self.sinks[0].caps:
-            return self.sinks[0].caps[0].get_name()
+        if self.caps:
+            return self.caps.get_structure(0).get_name()
 
     def get_content_type(self):
         mime = self.get_mime()
@@ -574,19 +541,7 @@ class MultifdSinkStreamer(feedcomponent.ParseLaunchComponent, Stats):
         return mime
 
     def getUrl(self):
-        port = self.port
-
-        if self.type == 'slave' and self._pbclient:
-            if not self._pbclient.remote_port:
-                return ""
-            port = self._pbclient.remote_port
-
-        if (not port) or (port == 80):
-            port_str = ""
-        else:
-            port_str = ":%d" % port
-
-        return "http://%s%s%s" % (self.hostname, port_str, self.mountPoint)
+        return "http://%s:%d%s" % (self.hostname, self.port, self.mountPoint)
 
     def getStreamData(self):
         socket = 'flumotion.component.plugs.streamdata.StreamDataProviderPlug'
@@ -620,7 +575,7 @@ class MultifdSinkStreamer(feedcomponent.ParseLaunchComponent, Stats):
         return (deltaadded * bitrate, deltaremoved * bitrate, bytes_sent,
             clients_connected, current_load)
 
-    def add_client(self, fd, request):
+    def add_client(self, fd):
         sink = self.get_element('sink')
         sink.emit('add', fd)
 
@@ -688,8 +643,6 @@ class MultifdSinkStreamer(feedcomponent.ParseLaunchComponent, Stats):
     ### START OF THREAD-AWARE CODE (called from non-reactor threads)
 
     def _notify_caps_cb(self, element, pad, param):
-        # We store caps in sink objects as
-        # each sink might (and will) serve different content-type
         caps = pad.get_negotiated_caps()
         if caps == None:
             return
@@ -697,11 +650,11 @@ class MultifdSinkStreamer(feedcomponent.ParseLaunchComponent, Stats):
         caps_str = gstreamer.caps_repr(caps)
         self.debug('Got caps: %s' % caps_str)
 
-        if not element.caps == None:
+        if not self.caps == None:
             self.warning('Already had caps: %s, replacing' % caps_str)
 
         self.debug('Storing caps: %s' % caps_str)
-        element.caps = caps
+        self.caps = caps
 
         reactor.callFromThread(self.update_ui_state)
 

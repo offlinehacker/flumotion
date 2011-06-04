@@ -22,6 +22,7 @@
 from flumotion.common import messages, errors
 from flumotion.common.i18n import N_, gettexter
 from flumotion.component import feedcomponent
+from flumotion.worker.checks import check
 
 
 __version__ = "$Rev$"
@@ -46,7 +47,7 @@ class VP8(feedcomponent.EncoderComponent):
                 addMessage(msg)
                 raise errors.ConfigError(msg)
 
-        check_limit('speed', 0, 7)
+        check_limit('speed', 0, 2)
         check_limit('threads', 1, 64)
 
     def get_pipeline_string(self, properties):
@@ -73,9 +74,3 @@ class VP8(feedcomponent.EncoderComponent):
                 eproperty, value))
 
             element.set_property(eproperty, value)
-
-    def modify_property_Bitrate(self, value):
-        if not self.checkPropertyType('bitrate', value, int):
-            return False
-        self.modify_element_property('encoder', 'bitrate', value)
-        return True

@@ -23,6 +23,7 @@ from gettext import gettext as _
 
 import gtk
 import os
+import math
 
 # import custom glade handler
 from flumotion.ui import glade

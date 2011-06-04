@@ -26,13 +26,10 @@ import gtk
 
 from twisted.internet import defer
 
-from flumotion.common import errors
-
+from flumotion.common import errors, componentui
+from flumotion.twisted import flavors
 from flumotion.component.base.admin_gtk import BaseAdminGtk
 from flumotion.component.base.baseadminnode import BaseAdminGtkNode
-
-# register serializable
-from flumotion.common import componentui
 
 _ = gettext.gettext
 __version__ = "$Rev$"

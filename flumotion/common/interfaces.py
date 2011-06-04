@@ -22,7 +22,7 @@
 """interfaces used by flumotion
 """
 
-from zope import interface
+from zope.interface import Attribute, Interface
 
 __version__ = "$Rev$"
 
@@ -30,7 +30,7 @@ __version__ = "$Rev$"
 # See also flumotion.medium.BaseMedium.
 
 
-class IMedium(interface.Interface):
+class IMedium(Interface):
     """I am a base interface for PB client-side mediums interfacing with
     manager-side avatars.
     """
@@ -58,7 +58,7 @@ class IComponentMedium(IMedium):
     """
 
 
-class IStreamingComponent(interface.Interface):
+class IStreamingComponent(Interface):
     """An interface for streaming components, for plugs that
     require a streaming component of some sort to use.
     """
@@ -101,7 +101,7 @@ class IFeedMedium(IMedium):
     """
 
 
-class IHeaven(interface.Interface):
+class IHeaven(Interface):
     """My implementors manage avatars logging in to the manager.
     """
 
@@ -117,7 +117,7 @@ class IHeaven(interface.Interface):
         """
 
 
-class IFeedServerParent(interface.Interface):
+class IFeedServerParent(Interface):
     """I am an interface for objects that manage a FeedServer, allowing the
     FeedServer to hand off file descriptors to eaters and feeders managed
     by the parent.
@@ -131,12 +131,12 @@ class IFeedServerParent(interface.Interface):
         """
 
 
-class IFile(interface.Interface):
+class IFile(Interface):
     """I am an interface representing a file and it's metadata.
     """
-    filename = interface.Attribute('the name of the file')
-    iconNames = interface.Attribute("""icon names that should be used to
-        represent this file in a graphical interface""")
+    filename = Attribute('the name of the file')
+    iconNames = Attribute("""icon names that should be used to represent
+      this file in a graphical interface""")
 
     def getPath():
         """Returns the complete path to the file, including

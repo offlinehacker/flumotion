@@ -104,8 +104,6 @@
 
         <property name="bouncer" type="string"
                   _description="The name of a bouncer in the atmosphere to authenticate against." />
-        <property name="issuer-class" type="string"
-                  _description="The Python class of the Keycard issuer to use." />
 	<property name="allow-default" type="bool"
 		  _description="Whether failure to communicate with the bouncer should make the component accept the connection." />
 
@@ -160,10 +158,10 @@
                 <filename location="httpserver.py" />
                 <filename location="serverstats.py" />
                 <!--
-                  http-server-component depends on localprovider.py because
+                  http-server-component depend on localprovider.py because
                   it's the default file provider used when no plug is specified
                 -->
-                <filename location="ourmimetypes.py" />
+                <filename location="mimetypes.py" />
                 <filename location="localpath.py" />
                 <filename location="localprovider.py" />
             </directory>

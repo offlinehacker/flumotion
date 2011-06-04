@@ -19,13 +19,18 @@
 
 # Headers in this file shall remain intact.
 
+import os
+
+import gobject
 import gst
 import gst.interfaces
 from twisted.internet.threads import deferToThread
 from twisted.internet import defer
 
-from flumotion.common import log, messages
+from flumotion.common import gstreamer, errors, log, messages
 from flumotion.common.i18n import N_, gettexter
+from flumotion.twisted import defer as fdefer
+from flumotion.worker.checks import check
 
 __version__ = "$Rev: 7678 $"
 T_ = gettexter()
@@ -54,10 +59,7 @@ def fetchDevices(mid, factories, parameter):
 
     factory = factories.pop()
 
-    try:
-        element = gst.element_factory_make(factory)
-    except gst.ElementNotFoundError:
-        element = None
+    element = gst.element_factory_make(factory)
 
     if not element:
         log.debug("device-check",
@@ -75,21 +77,21 @@ def fetchDevices(mid, factories, parameter):
             return fetchDevices(mid, factories, parameter)
 
     element.probe_property_name(parameter)
-    values = element.probe_get_values_name(parameter)
+    ids = element.probe_get_values_name(parameter)
 
     pipeline_str = "%s name=source %s" % (factory, parameter)
     pipeline_str += "=%s ! fakesink"
 
     devices = []
 
-    for value in values:
-        pipeline = gst.parse_launch(pipeline_str % value)
+    for id in ids:
+        pipeline = gst.parse_launch(pipeline_str % id)
         pipeline.set_state(gst.STATE_READY)
         source = pipeline.get_by_name("source")
         name = source.get_property("device-name")
-        log.debug("device-check", "New device found: %s with values=%s",
-                  name, value)
-        devices.append((name, value))
+        log.debug("device-check", "New device found: %s with ids=%s",
+                  name, id)
+        devices.append((name, id))
         pipeline.set_state(gst.STATE_NULL)
 
     if devices:

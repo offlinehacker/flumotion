@@ -29,7 +29,7 @@ import time
 
 import gtk
 
-from flumotion.common import format as formatting
+from flumotion.common.format import formatStorage, formatTime
 from flumotion.common.i18n import gettexter
 from flumotion.component.base.baseadminnode import BaseAdminGtkNode
 from flumotion.extern.log.log import getDebug
@@ -165,7 +165,7 @@ class ComponentAdminGtkNode(BaseAdminGtkNode):
     def _setStartTime(self, value):
         self._label_start_time.set_text(
             time.strftime("%c", time.localtime(value)))
-        self._label_uptime.set_text(formatting.formatTime(0))
+        self._label_uptime.set_text(formatTime(0))
 
         self._startTime = value
 
@@ -173,7 +173,7 @@ class ComponentAdminGtkNode(BaseAdminGtkNode):
         if self._startTime is not None:
             runtime = value - self._startTime
 
-            self._label_uptime.set_text(formatting.formatTime(runtime))
+            self._label_uptime.set_text(formatTime(runtime))
         else:
             self._label_uptime.set_text(_("not available"))
 
@@ -200,7 +200,7 @@ class ComponentAdminGtkNode(BaseAdminGtkNode):
         if not vsize:
             self._label_vsize.set_text(_('Unknown'))
         else:
-            self._label_vsize.set_text('%sB' % formatting.formatStorage(vsize))
+            self._label_vsize.set_text('%sB' % formatStorage(vsize))
 
     def _updateResets(self, count):
         if not self._label_resets.get_property('visible'):

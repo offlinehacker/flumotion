@@ -28,7 +28,7 @@ from twisted.internet import defer, reactor, abstract
 from flumotion.common import log
 
 from flumotion.component.misc.httpserver import fileprovider
-from flumotion.component.misc.httpserver import ourmimetypes
+from flumotion.component.misc.httpserver import mimetypes
 from flumotion.component.misc.httpserver import cachestats
 from flumotion.component.misc.httpserver.httpcached import common
 from flumotion.component.misc.httpserver.httpcached import resource_manager
@@ -203,7 +203,7 @@ class CachedSource(resource_manager.DataSource):
     Data source that read data directly from a localy cached file.
     """
 
-    mimetypes = ourmimetypes.MimeTypes()
+    mimetypes = mimetypes.MimeTypes()
 
     def __init__(self, ident, url, cachedFile, stats):
         self.identifier = ident
@@ -360,7 +360,7 @@ class CachingSession(BaseCachingSession, log.Loggable):
      ABORTED,
      ERROR) = range(10)
 
-    mimetypes = ourmimetypes.MimeTypes()
+    mimetypes = mimetypes.MimeTypes()
 
     def __init__(self, strategy, url, cache_stats, ifModifiedSince=None):
         self.strategy = strategy

@@ -88,16 +88,16 @@ import time
 
 from twisted.internet import defer, reactor
 
-from flumotion.common import keycards, errors, python, poller
+from flumotion.common import interfaces, keycards, errors, python
+from flumotion.common.poller import Poller
 from flumotion.common.componentui import WorkerComponentUIState
 
 from flumotion.component import component
-from flumotion.twisted import credentials
+from flumotion.twisted import flavors, credentials
 
 __all__ = ['Bouncer']
 __version__ = "$Rev$"
 
-# How many keycards to expire in a single synchronous deferred expiration call.
 EXPIRE_BLOCK_SIZE = 100
 
 
@@ -173,9 +173,9 @@ class Bouncer(component.BaseComponent):
         self._idFormat = time.strftime('%Y%m%d%H%M%S-%%d')
         self._keycards = {} # keycard id -> Keycard
 
-        self._expirer = poller.Poller(self._expire,
-                            self.KEYCARD_EXPIRE_INTERVAL,
-                            start=False)
+        self._expirer = Poller(self._expire,
+                               self.KEYCARD_EXPIRE_INTERVAL,
+                               start=False)
         self.enabled = True
 
     def setDomain(self, name):
@@ -389,11 +389,6 @@ class Bouncer(component.BaseComponent):
         return d
 
     def _expireNextKeycardBlock(self, total, keycardIds, finished):
-        # We can't expire all keycards in a single blocking call because
-        # there might be so many that the component goes lost.
-        # This call will trigger expiring all keycards by chunking them
-        # across separate deferreds.
-
         keycardBlock = keycardIds[:EXPIRE_BLOCK_SIZE]
         keycardIds = keycardIds[EXPIRE_BLOCK_SIZE:]
         idByReq = {}
@@ -406,9 +401,6 @@ class Bouncer(component.BaseComponent):
                 self.removeKeycardId(keycardId)
 
         if not (idByReq and self.medium):
-            # instead of serializing each block by chaining deferreds, which
-            # can trigger maximum recursion depth, we just callback once
-            # on the passed-in deferred
             finished.callback(total)
             return
 
@@ -611,12 +603,12 @@ class AuthSessionBouncer(Bouncer):
 
     def do_expireKeycards(self, elapsed):
         cont = Bouncer.do_expireKeycards(self, elapsed)
-        for sessionId, (ttl, data) in self._sessions.items():
+        for id, (ttl, data) in self._sessions.items():
             if ttl is not None:
                 ttl -= elapsed
-                self._sessions[sessionId] = (ttl, data)
+                self._sessions[id] = (ttl, data)
                 if ttl <= 0:
-                    del self._sessions[sessionId]
+                    del self._sessions[id]
 
         return cont and len(self._sessions) > 0
 
