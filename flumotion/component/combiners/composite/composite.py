@@ -20,12 +20,23 @@
 # Headers in this file shall remain intact.
 
 from flumotion.component import feedcomponent
+from flumotion.component import feedcomponent
 
 __version__ = "$Rev$"
 
+class CompositeMedium(feedcomponent.FeedComponentMedium):
+    def remote_setValue(self, id, name, value):
+        pipeline= self.comp.get_pipeline()
+        mixer = pipeline.get_by_name('mixer')
+        pad= None
+        for i, p in enumerate(mixer.sink_pads()):
+            if(i==id):
+                pad= p
+        pad.set_property(name,value)
 
 class Composite(feedcomponent.MultiInputParseLaunchComponent):
     logCategory = 'comb-composite'
+    componentMediumClass = CompositeMedium
 
     def init(self):
         self._pad_names = {}
